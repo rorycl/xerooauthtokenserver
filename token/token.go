@@ -61,6 +61,7 @@ type Token struct {
 	expireTimeTicker      time.Duration
 	expirySecs            time.Duration
 	locker                sync.Mutex
+	refreshChan           <-chan struct{}
 }
 
 // String represents Token for printing
@@ -122,6 +123,7 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 	if len(scopes) < 1 {
 		return t, errors.New("scopes cannot be empty")
 	}
+
 	t = &Token{
 		redirectURL:       redirect,
 		clientID:          client,
@@ -129,10 +131,15 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 		Scopes:            scopes,
 		authURL:           authURL,
 		tokenURL:          tokenURL,
-		httpclientTimeout: time.Second * time.Duration(2),
+		httpclientTimeout: time.Second * 3,
 		expireTimeTicker:  time.Minute * 1,
 		expirySecs:        ExpirySecs,
 	}
+
+	// initialise goroutines for refreshing tokens
+	t.refreshChan = t.refresher()
+	t.refreshRunner(t.refreshChan)
+
 	return t, nil
 }
 
@@ -223,6 +230,7 @@ func (t *Token) GetToken(code string) error {
 	t.AccessToken = results.AccessToken
 	t.RefreshToken = results.RefreshToken
 	t.setExpiry(results.ExpiresIn)
+
 	t.locker.Unlock()
 
 	return nil
