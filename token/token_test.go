@@ -16,12 +16,13 @@ import (
 func TestNewTokenErr(t *testing.T) {
 
 	type newTokenInput struct {
-		redirect string
-		client   string
-		secret   string
-		scopes   []string
-		authURL  string
-		tokenURL string
+		redirect    string
+		client      string
+		secret      string
+		scopes      []string
+		authURL     string
+		tokenURL    string
+		refreshMins int
 	}
 
 	// https://www.myhatchpad.com/insight/mocking-techniques-for-go/
@@ -37,8 +38,6 @@ func TestNewTokenErr(t *testing.T) {
 				client:   "abc",
 				secret:   "def",
 				scopes:   []string{},
-				authURL:  "",
-				tokenURL: "",
 			},
 			expectedErr: errors.New("redirect url invalid"),
 		},
@@ -49,8 +48,6 @@ func TestNewTokenErr(t *testing.T) {
 				client:   "",
 				secret:   "def",
 				scopes:   []string{},
-				authURL:  "",
-				tokenURL: "",
 			},
 			expectedErr: errors.New("redirect, client or secret is empty"),
 		},
@@ -61,8 +58,6 @@ func TestNewTokenErr(t *testing.T) {
 				client:   "abc",
 				secret:   "",
 				scopes:   []string{},
-				authURL:  "",
-				tokenURL: "",
 			},
 			expectedErr: errors.New("redirect, client or secret is empty"),
 		},
@@ -73,8 +68,6 @@ func TestNewTokenErr(t *testing.T) {
 				client:   "abc",
 				secret:   "def",
 				scopes:   []string{},
-				authURL:  "",
-				tokenURL: "",
 			},
 			expectedErr: errors.New("scopes cannot be empty"),
 		},
@@ -85,8 +78,6 @@ func TestNewTokenErr(t *testing.T) {
 				client:   "abc",
 				secret:   "def",
 				scopes:   []string{"offline_access", "accounting.transactions"},
-				authURL:  "",
-				tokenURL: "",
 			},
 			expectedErr: nil,
 		},
@@ -101,6 +92,7 @@ func TestNewTokenErr(t *testing.T) {
 				test.input.scopes,
 				test.input.authURL,
 				test.input.tokenURL,
+				test.input.refreshMins,
 			)
 			// nil error match
 			if test.expectedErr == nil {

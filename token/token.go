@@ -60,6 +60,7 @@ type Token struct {
 	httpclientTimeout     time.Duration
 	expireTimeTicker      time.Duration
 	expirySecs            time.Duration
+	refreshTokenLifetime  time.Duration
 	locker                sync.Mutex
 	refreshChan           <-chan struct{}
 }
@@ -101,7 +102,7 @@ func (t *Token) RefreshTokenJSON() (j []byte, err error) {
 }
 
 // NewToken returns a new Token struct
-func NewToken(redirect, client, secret string, scopes []string, authURL, tokenURL string) (t *Token, err error) {
+func NewToken(redirect, client, secret string, scopes []string, authURL, tokenURL string, refreshMins int) (t *Token, err error) {
 
 	_, err = url.ParseRequestURI(redirect)
 	if err != nil {
@@ -124,16 +125,24 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 		return t, errors.New("scopes cannot be empty")
 	}
 
+	var refreshLifetime time.Duration
+	if refreshMins == 0 {
+		refreshLifetime = time.Hour * time.Duration(24*XeroRefreshExpirationDays)
+	} else {
+		refreshLifetime = time.Minute * time.Duration(refreshMins)
+	}
+
 	t = &Token{
-		redirectURL:       redirect,
-		clientID:          client,
-		clientSecret:      secret,
-		Scopes:            scopes,
-		authURL:           authURL,
-		tokenURL:          tokenURL,
-		httpclientTimeout: time.Second * 3,
-		expireTimeTicker:  time.Minute * 1,
-		expirySecs:        ExpirySecs,
+		redirectURL:          redirect,
+		clientID:             client,
+		clientSecret:         secret,
+		Scopes:               scopes,
+		authURL:              authURL,
+		tokenURL:             tokenURL,
+		httpclientTimeout:    time.Second * 3,
+		expireTimeTicker:     time.Minute * 1,
+		expirySecs:           ExpirySecs,
+		refreshTokenLifetime: refreshLifetime,
 	}
 
 	// initialise goroutines for refreshing tokens
@@ -178,7 +187,7 @@ func (t *Token) encodeIDSecret() string {
 func (t *Token) setExpiry(expiry int) {
 	now := time.Now().UTC()
 	t.AccessTokenExpiryUTC = now.Add(time.Duration(expiry) * time.Second)
-	t.RefreshTokenExpiryUTC = now.Add(time.Hour * time.Duration(24*XeroRefreshExpirationDays))
+	t.RefreshTokenExpiryUTC = now.Add(t.refreshTokenLifetime)
 }
 
 // tokenResults is the type of the Xero API results

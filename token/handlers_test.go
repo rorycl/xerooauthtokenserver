@@ -25,6 +25,7 @@ func init() {
 		[]string{"offline_access", "accounting.transactions"},
 		"", // authURL
 		"", // tokenURL
+		0,  // refresh minutes
 	)
 	if err != nil {
 		log.Fatalf("token initialisation failed")
