@@ -27,7 +27,7 @@ type Opts struct {
 	ClientSecret string   `short:"s" long:"clientsecret" description:"xero client secret, or use env" env:"XEROCLIENTSECRET" required:"yes"`
 	Redirect     string   `short:"r" long:"redirect" description:"oauth2 redirect address" default:"http://localhost:5001/"`
 	Scopes       []string `short:"o" long:"scopes" description:"oauth2 scopes" default:"offline_access" default:"accounting.transactions"`
-	RefreshMins  int      `short:"m" long:"refreshmins" description:"refresh token within this number of minutes (default 50 days)" default:"4320000"`
+	RefreshMins  int      `short:"m" long:"refreshmins" description:"set lifetime of refresh token (default 50 days)" default:"4320000"`
 }
 
 func main() {
@@ -84,11 +84,10 @@ func main() {
 		WriteTimeout: 3 * time.Second,
 		Handler:      hdl,
 	}
+	log.Printf("serving on %s:%s", options.Addr, options.Port)
 
 	// wrap server with manners
 	manners.ListenAndServe(options.Addr+":"+options.Port, server.Handler)
-
-	log.Printf("serving on %s:%s", options.Addr, options.Port)
 
 	// catch signals
 	ch := make(chan os.Signal)
