@@ -16,7 +16,7 @@ import (
 )
 
 const description = "Xero oauth token server"
-const version = "0.0.3 September 2021"
+const version = "0.0.4 September 2021"
 const usage = " <options>" + "\n\n  " + description
 
 // Opts are the command line options
@@ -98,6 +98,6 @@ func main() {
 
 func listenForShutdown(ch <-chan os.Signal) {
 	<-ch
-	log.Print("Closing the Rtest http server")
+	log.Print("Closing the server")
 	manners.Close()
 }
