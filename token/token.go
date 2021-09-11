@@ -275,3 +275,13 @@ func (t *Token) Refresh() error {
 
 	return nil
 }
+
+// Get returns the Token after refreshing if necessary
+func (t *Token) Get() (tt *Token, err error) {
+	now := time.Now().UTC()
+	if t.AccessTokenExpiryUTC.Add(-t.accessTokenExpirySecs).After(now) {
+		return t, nil
+	}
+	err = t.Refresh()
+	return t, err
+}

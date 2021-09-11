@@ -115,6 +115,15 @@ func (t *Token) HandleAccessToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, msg, http.StatusMethodNotAllowed)
 		return
 	}
+	// Get or refresh the token
+	_, err := t.Get()
+	if err != nil {
+		msg := fmt.Sprintf("token get or refresh error: %s", err)
+		log.Println(msg)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
+	// jsonify
 	j, err := t.TokenJSON()
 	if err != nil {
 		msg := fmt.Sprintf("token json encoding error: %s", err)

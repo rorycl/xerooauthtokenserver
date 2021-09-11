@@ -280,3 +280,50 @@ func TestRefreshFailNonInit(t *testing.T) {
 	}
 
 }
+
+func TestGet(t *testing.T) {
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
+	}))
+	defer server.Close()
+
+	token.tokenURL = server.URL
+	token.AccessToken = "xxx"
+	token.RefreshToken = "yyy"
+	token.accessTokenExpirySecs = (1 * time.Second)
+	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Second * 2)
+
+	getToken, err := token.Get()
+	if err != nil {
+		t.Errorf("error getting token: %s", err)
+	}
+	if getToken.AccessToken != "xxx" {
+		t.Errorf("get access token error: got(%s) want(%s)", getToken.AccessToken, "xxx")
+	}
+}
+
+func TestGetWithRefresh(t *testing.T) {
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
+	}))
+	defer server.Close()
+
+	token.tokenURL = server.URL
+	token.AccessToken = "xx2"
+	token.RefreshToken = "yy2"
+	token.accessTokenExpirySecs = (3 * time.Second)
+	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Second * 2)
+
+	// should refresh
+	getToken, err := token.Get()
+	if err != nil {
+		t.Errorf("error getting token: %s", err)
+	}
+	if getToken.AccessToken != "abc" {
+		t.Errorf("get access token error: got(%s) want(%s)", getToken.AccessToken, "abc")
+	}
+}
