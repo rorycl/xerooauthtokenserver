@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,10 +26,10 @@ const XeroTokenURL string = "https://identity.xero.com/connect/token"
 // See https://developer.xero.com/faq/oauth2/
 const XeroRefreshExpirationDays int = 50
 
-// ExpirySecs is the number of seconds before the any token expiry
-// to trigger a refresh, for instance <n> seconds before the typical 30
-// minute access token expiry
-const ExpirySecs time.Duration = 120
+// DefaultExpirySecs is the number of seconds before the any token
+// expiry to trigger a refresh, for instance <n> seconds before the
+// refresh token expiry
+const DefaultExpirySecs int = 60
 
 // Token represents Xero API Tokens provided by the Xero OAuth2 flow,
 // particularly each AccessToken which is valid for 30 minutes and
@@ -141,7 +142,7 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 		tokenURL:             tokenURL,
 		httpclientTimeout:    time.Second * 3,
 		expireTimeTicker:     time.Minute * 1,
-		expirySecs:           ExpirySecs,
+		expirySecs:           time.Second * time.Duration(DefaultExpirySecs),
 		refreshTokenLifetime: refreshLifetime,
 	}
 
@@ -188,6 +189,7 @@ func (t *Token) setExpiry(expiry int) {
 	now := time.Now().UTC()
 	t.AccessTokenExpiryUTC = now.Add(time.Duration(expiry) * time.Second)
 	t.RefreshTokenExpiryUTC = now.Add(t.refreshTokenLifetime)
+	log.Printf("Setting expiry: lifetime %v refresh %s", t.refreshTokenLifetime, t.RefreshTokenExpiryUTC)
 }
 
 // tokenResults is the type of the Xero API results
@@ -292,7 +294,9 @@ func (t *Token) Refresh() error {
 	return nil
 }
 
-// Get returns the Token after refreshing if necessary
+// Get returns the Token after refreshing if necessary. An assumption is
+// made that some latitude (expirySecs) is needed when determining
+// expiration.
 func (t *Token) Get() (tt *Token, err error) {
 	now := time.Now().UTC()
 	if t.AccessTokenExpiryUTC.Add(-t.expirySecs).After(now) {
