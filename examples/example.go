@@ -38,8 +38,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	authURL, tokenURL := "", "" // use defaults
-	ts, err := token.NewToken(redirect, clientID, clientSecret, scopes, authURL, tokenURL)
+	authURL, tokenURL, refreshLifetime := "", "", 0 // use defaults
+	ts, err := token.NewToken(redirect, clientID, clientSecret, scopes, authURL, tokenURL, refreshLifetime)
 	if err != nil {
 		fmt.Printf("new tokenServer error %s\n", err)
 		os.Exit(1)
