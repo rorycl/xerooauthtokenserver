@@ -3,10 +3,10 @@ xerooauthtokenserver v0.0.4
 
 Summary:
 
-xerooauthtokenserver is an OAuth2 token server for the accounting
-software as a service system Xero. The server acts as a proxy, providing
-an easy upgrade path for software designed for the previous Xero OAuth1
-flow.
+xerooauthtokenserver is an http server for managing OAuth2 tokens for
+the accounting software as a service system Xero. The server acts as a
+sidecar or proxy, providing an easy upgrade path for software designed
+for the previous Xero OAuth1 flow.
 
 After following the Xero Oauth2 flow the server makes available a json
 access token at the /token endpoint, and will refresh tokens when

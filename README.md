@@ -1,13 +1,22 @@
 # xerooauthtokenserver
 
-Local server to act as a Xero Oauth2 token proxy to help software
-migrating from Xero's Oauth1 flows.
+version 0.0.4 September 2021
 
-*Do not use* as this repo is still in development.
+## Summary
 
-Run the server locally and use it to retrieve a token and refresh token
-from Xero. The server will automatically refresh tokens and provide a
-token at the `/token` endpoint.
+xerooauthtokenserver is an http server for managing OAuth2 tokens for
+the accounting software as a service system Xero. The server acts as a
+sidecar or proxy, providing an easy upgrade path for software designed
+for the previous Xero OAuth1 flow.
+
+After following the Xero Oauth2 flow the server makes available a json
+access token at the /token endpoint, and will refresh tokens when
+required using the refresh token, or when the refresh token is due to
+expire.
+
+xerooauthtokenserver/token also provides a package to easily integrate
+the Xero OAuth2 flow into a Go programme.
+
 
 ## Usage
 
@@ -15,7 +24,7 @@ token at the `/token` endpoint.
 Usage:
   XeroOauthTokenServer  <options>
 
-  Xero oauth token server : 0.0.3 September 2021
+  Xero oauth token server : 0.0.4 September 2021
 
 Application Options:
   -p, --port=         port to run on (default: 5001)
@@ -24,12 +33,9 @@ Application Options:
   -s, --clientsecret= xero client secret, or use env [$XEROCLIENTSECRET]
   -r, --redirect=     oauth2 redirect address (default: http://localhost:5001/)
   -o, --scopes=       oauth2 scopes (default: offline_access, accounting.transactions)
-  -m, --refreshmins=  refresh token within this number of minutes (default 20 days) (default:
-                      28800)
+  -m, --refreshmins=  set lifetime of refresh token (default 50 days) (default: 4320000)
 
 Help Options:
   -h, --help          Show this help message
+
 ```
-
-
-
