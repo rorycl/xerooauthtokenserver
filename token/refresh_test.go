@@ -9,13 +9,25 @@ import (
 
 func TestRefresher(t *testing.T) {
 
+	token := &Token{
+		AccessToken:       "abc",
+		RefreshToken:      "def",
+		redirectURL:       "https://exampletest.com",
+		clientID:          "XXXXXclientidXXXXX",
+		clientSecret:      "XXXXXclientsecretXXXXX",
+		Scopes:            []string{"offline_access", "accounting.transactions"},
+		authURL:           XeroAuthURL,
+		tokenURL:          XeroTokenURL,
+		httpclientTimeout: time.Second * 3,
+	}
+
 	now := time.Now().UTC()
 
-	token.expireTimeTicker = 30 * time.Millisecond
+	token.expireTimeTicker = 40 * time.Millisecond
 	token.RefreshTokenExpiryUTC = now.Add(200 * time.Millisecond)
 	token.expirySecs = 100 * time.Millisecond
 
-	after := time.After(120 * time.Millisecond)
+	after := time.After(130 * time.Millisecond)
 
 	refresher := token.refresher()
 
@@ -25,16 +37,14 @@ loop:
 		select {
 		case <-refresher:
 			counter++
-			if counter > 2 {
-				break loop
-			}
+			break loop
 		case <-after:
 			t.Errorf("Timeout triggered")
 			break loop
 		}
 	}
-	if counter != 3 {
-		t.Errorf("Expect 3 ticks during test, got %d", counter)
+	if counter != 1 {
+		t.Errorf("Expected 1 tick during test, got %d", counter)
 	}
 }
 

@@ -23,10 +23,15 @@ func (t *Token) refresher() <-chan struct{} {
 	return refresher
 }
 
-// expiring determines if the RefreshToken is about to expire
+// expiring determines if the RefreshToken is about to expire; return
+// early if the system has not been initialised
 func (t *Token) expiring() bool {
+	if t.AccessToken == "" || t.RefreshToken == "" {
+		return false
+	}
 	now := time.Now().UTC()
-	if t.RefreshTokenExpiryUTC.Add(-t.expirySecs).After(now) {
+	expiration := t.RefreshTokenExpiryUTC.Add(-t.expirySecs)
+	if now.After(expiration) {
 		return true
 	}
 	return false
@@ -39,6 +44,7 @@ func (t *Token) refreshRunner(refresher <-chan struct{}) {
 	go func() {
 		for range refresher {
 			err := t.Refresh()
+			log.Println("running refresh")
 			if err != nil {
 				log.Printf("refresh error %s", err)
 			}
