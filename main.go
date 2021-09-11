@@ -27,7 +27,7 @@ type Opts struct {
 	ClientSecret string   `short:"s" long:"clientsecret" description:"xero client secret, or use env" env:"XEROCLIENTSECRET" required:"yes"`
 	Redirect     string   `short:"r" long:"redirect" description:"oauth2 redirect address" default:"http://localhost:5001/"`
 	Scopes       []string `short:"o" long:"scopes" description:"oauth2 scopes" default:"offline_access" default:"accounting.transactions"`
-	RefreshMins  int      `short:"m" long:"refreshmins" description:"refresh token within this number of minutes (default 20 days)" default:"28800"`
+	RefreshMins  int      `short:"m" long:"refreshmins" description:"refresh token within this number of minutes (default 50 days)" default:"4320000"`
 }
 
 func main() {
@@ -56,6 +56,7 @@ func main() {
 		options.Scopes,
 		authURL,
 		tokenURL,
+		options.RefreshMins,
 	)
 
 	if err != nil {
