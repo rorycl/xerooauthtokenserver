@@ -1,3 +1,6 @@
+# don't include project binary
+XeroOauthTokenServer
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
