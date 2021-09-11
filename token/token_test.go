@@ -292,7 +292,7 @@ func TestGet(t *testing.T) {
 	token.tokenURL = server.URL
 	token.AccessToken = "xxx"
 	token.RefreshToken = "yyy"
-	token.accessTokenExpirySecs = (1 * time.Second)
+	token.expirySecs = (1 * time.Second)
 	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Second * 2)
 
 	getToken, err := token.Get()
@@ -315,7 +315,7 @@ func TestGetWithRefresh(t *testing.T) {
 	token.tokenURL = server.URL
 	token.AccessToken = "xx2"
 	token.RefreshToken = "yy2"
-	token.accessTokenExpirySecs = (3 * time.Second)
+	token.expirySecs = (3 * time.Second)
 	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Second * 2)
 
 	// should refresh

@@ -224,6 +224,7 @@ func TestHandleRefreshFail(t *testing.T) {
 func TestHandleToken(t *testing.T) {
 
 	token.AccessToken = "xyz123"
+	token.RefreshToken = "abc987"
 	handler := token.HandleAccessToken
 
 	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/token", nil)
@@ -238,6 +239,8 @@ func TestHandleToken(t *testing.T) {
 
 	if statusCode != 200 {
 		t.Errorf("Status code %d != 200", statusCode)
+		t.Errorf("body: %s", body)
+		t.Errorf("token: %s", token)
 	}
 	if contentType != "application/json" {
 		t.Errorf("Content type unexpected: %s\n", contentType)

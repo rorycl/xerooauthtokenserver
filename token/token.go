@@ -20,13 +20,15 @@ const XeroAuthURL string = "https://login.xero.com/identity/connect/authorize"
 // XeroTokenURL is the Xero token receipt url
 const XeroTokenURL string = "https://identity.xero.com/connect/token"
 
-// XeroAccessTokenExpirySecs is the number of seconds before the token expiry
-// to trigger a refresh. Tokens typically last 1800 secs
-const XeroAccessTokenExpirySecs int = 120
-
 // XeroRefreshExpirationDays is the default expiration of the refresh
-// token, which is 30 days; let's say 20
-const XeroRefreshExpirationDays int = 20
+// token from now, which is 60 days; let's say 50
+// See https://developer.xero.com/faq/oauth2/
+const XeroRefreshExpirationDays int = 50
+
+// ExpirySecs is the number of seconds before the any token expiry
+// to trigger a refresh, for instance <n> seconds before the typical 30
+// minute access token expiry
+const ExpirySecs time.Duration = 120
 
 // Token represents Xero API Tokens provided by the Xero OAuth2 flow,
 // particularly each AccessToken which is valid for 30 minutes and
@@ -44,22 +46,21 @@ const XeroRefreshExpirationDays int = 20
 
 // The Token data structure is locked via a sync.Mutex on update.
 type Token struct {
-	AccessToken            string    `json:"access_token"`
-	AccessTokenExpiryUTC   time.Time `json:"access_token_expiry_utc"`
-	RefreshToken           string    `json:"refresh_token"`
-	RefreshTokenExpiryUTC  time.Time `json:"refresh_token_expiry_utc"`
-	Scopes                 []string  `json:"scopes"`
-	clientID               string
-	clientSecret           string
-	state                  string
-	authURL                string
-	redirectURL            string
-	tokenURL               string
-	httpclientTimeout      time.Duration
-	expireTimeTicker       time.Duration
-	accessTokenExpirySecs  time.Duration
-	refreshTokenExpirySecs time.Duration
-	locker                 sync.Mutex
+	AccessToken           string    `json:"access_token"`
+	AccessTokenExpiryUTC  time.Time `json:"access_token_expiry_utc"`
+	RefreshToken          string    `json:"refresh_token"`
+	RefreshTokenExpiryUTC time.Time `json:"refresh_token_expiry_utc"`
+	Scopes                []string  `json:"scopes"`
+	clientID              string
+	clientSecret          string
+	state                 string
+	authURL               string
+	redirectURL           string
+	tokenURL              string
+	httpclientTimeout     time.Duration
+	expireTimeTicker      time.Duration
+	expirySecs            time.Duration
+	locker                sync.Mutex
 }
 
 // String represents Token for printing
@@ -122,16 +123,15 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 		return t, errors.New("scopes cannot be empty")
 	}
 	t = &Token{
-		redirectURL:            redirect,
-		clientID:               client,
-		clientSecret:           secret,
-		Scopes:                 scopes,
-		authURL:                authURL,
-		tokenURL:               tokenURL,
-		httpclientTimeout:      time.Second * time.Duration(2),
-		expireTimeTicker:       time.Minute * 1,
-		accessTokenExpirySecs:  time.Second * time.Duration(XeroAccessTokenExpirySecs),
-		refreshTokenExpirySecs: time.Second * time.Duration(24*60*60*XeroRefreshExpirationDays),
+		redirectURL:       redirect,
+		clientID:          client,
+		clientSecret:      secret,
+		Scopes:            scopes,
+		authURL:           authURL,
+		tokenURL:          tokenURL,
+		httpclientTimeout: time.Second * time.Duration(2),
+		expireTimeTicker:  time.Minute * 1,
+		expirySecs:        ExpirySecs,
 	}
 	return t, nil
 }
@@ -167,12 +167,11 @@ func (t *Token) encodeIDSecret() string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-// setExpiry sets the expiration time of the token and refreshtoken
+// setExpiry sets the UTC expiration time of the token and refreshtoken
 func (t *Token) setExpiry(expiry int) {
 	now := time.Now().UTC()
-	t.AccessTokenExpiryUTC = now.Add(
-		time.Second * time.Duration(expiry-XeroAccessTokenExpirySecs))
-	t.RefreshTokenExpiryUTC = now.AddDate(0, 0, XeroRefreshExpirationDays)
+	t.AccessTokenExpiryUTC = now.Add(time.Duration(expiry) * time.Second)
+	t.RefreshTokenExpiryUTC = now.Add(time.Hour * time.Duration(24*XeroRefreshExpirationDays))
 }
 
 // tokenResults is the type of the Xero API results
@@ -279,7 +278,7 @@ func (t *Token) Refresh() error {
 // Get returns the Token after refreshing if necessary
 func (t *Token) Get() (tt *Token, err error) {
 	now := time.Now().UTC()
-	if t.AccessTokenExpiryUTC.Add(-t.accessTokenExpirySecs).After(now) {
+	if t.AccessTokenExpiryUTC.Add(-t.expirySecs).After(now) {
 		return t, nil
 	}
 	err = t.Refresh()

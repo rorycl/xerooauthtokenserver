@@ -26,7 +26,7 @@ func (t *Token) refresher() <-chan struct{} {
 // expiring determines if the RefreshToken is about to expire
 func (t *Token) expiring() bool {
 	now := time.Now().UTC()
-	if t.RefreshTokenExpiryUTC.Add(-t.refreshTokenExpirySecs).After(now) {
+	if t.RefreshTokenExpiryUTC.Add(-t.expirySecs).After(now) {
 		return true
 	}
 	return false

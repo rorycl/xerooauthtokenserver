@@ -13,7 +13,7 @@ func TestRefresher(t *testing.T) {
 
 	token.expireTimeTicker = 30 * time.Millisecond
 	token.RefreshTokenExpiryUTC = now.Add(200 * time.Millisecond)
-	token.refreshTokenExpirySecs = 100 * time.Millisecond
+	token.expirySecs = 100 * time.Millisecond
 
 	after := time.After(120 * time.Millisecond)
 
