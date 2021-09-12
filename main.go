@@ -16,7 +16,7 @@ import (
 )
 
 const description = "Xero oauth token server"
-const version = "0.0.4 September 2021"
+const version = "0.0.5 September 2021"
 const usage = " <options>" + "\n\n  " + description
 
 // Opts are the command line options
@@ -35,7 +35,7 @@ func main() {
 
 	var options Opts
 	var parser = flags.NewParser(&options, flags.Default)
-	parser.Usage = fmt.Sprintf("%s : %s\n", usage, version)
+	parser.Usage = fmt.Sprintf("%s : %s", usage, version)
 
 	if _, err := parser.Parse(); err != nil {
 		flagError := err.(*flags.Error)

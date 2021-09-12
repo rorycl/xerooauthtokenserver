@@ -1,5 +1,5 @@
 /*
-xerooauthtokenserver v0.0.4
+xerooauthtokenserver v0.0.5
 
 Summary:
 
@@ -12,6 +12,8 @@ After following the Xero Oauth2 flow the server makes available a json
 access token at the /token endpoint, and will refresh tokens when
 required using the refresh token, or when the refresh token is due to
 expire.
+
+The server can also be initialised with a save refresh token.
 
 xerooauthtokenserver/token also provides a package to easily integrate
 the Xero OAuth2 flow into a Go programme.
