@@ -108,6 +108,7 @@ func TestNewTokenErr(t *testing.T) {
 }
 
 func TestURL(t *testing.T) {
+	token := initToken()
 
 	token.authURL = "http://127.0.0.1:5000/"
 	urlForTest := token.AuthURL()
@@ -151,6 +152,7 @@ func TestURL(t *testing.T) {
 }
 
 func TestGetToken(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -176,6 +178,7 @@ func TestGetToken(t *testing.T) {
 }
 
 func TestGetTokenFail(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -194,6 +197,7 @@ func TestGetTokenFail(t *testing.T) {
 }
 
 func TestGetTokenTimeout(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -214,6 +218,7 @@ func TestGetTokenTimeout(t *testing.T) {
 }
 
 func TestRefresh(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -235,10 +240,10 @@ func TestRefresh(t *testing.T) {
 	if token.RefreshToken == "" {
 		t.Errorf("refresh token is empty")
 	}
-
 }
 
 func TestRefreshFail(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -247,15 +252,17 @@ func TestRefreshFail(t *testing.T) {
 	defer server.Close()
 
 	token.tokenURL = server.URL
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
 	err := token.Refresh()
 
 	if err.Error() != "empty response received from server" {
 		t.Errorf("unexpected error %s", err)
 	}
-
 }
 
 func TestRefreshFailNonInit(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -270,10 +277,10 @@ func TestRefreshFailNonInit(t *testing.T) {
 	if err.Error() != "token system has not been initialised" {
 		t.Errorf("unexpected error %s", err)
 	}
-
 }
 
 func TestGet(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -297,6 +304,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetWithRefresh(t *testing.T) {
+	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

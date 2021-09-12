@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestExampleFromDocs is shown at
@@ -17,7 +18,7 @@ import (
 var token *Token
 var err error
 
-func init() {
+func initToken() *Token {
 	token, err = NewToken(
 		"https://exampletest.com",
 		"XXXXXclientidXXXXX",
@@ -30,6 +31,7 @@ func init() {
 	if err != nil {
 		log.Fatalf("token initialisation failed")
 	}
+	return token
 }
 
 func TestExampleFromDocs(t *testing.T) {
@@ -51,6 +53,7 @@ func TestExampleFromDocs(t *testing.T) {
 
 // Test home page
 func TestHandleHome(t *testing.T) {
+	token := initToken()
 
 	handler := token.HandleHome
 
@@ -71,13 +74,47 @@ func TestHandleHome(t *testing.T) {
 	if contentType != "text/html; charset=utf-8" {
 		t.Errorf("Content type unexpected: %s\n", contentType)
 	}
+	if strings.Contains(bodyString, "The server is already initialised") {
+		t.Errorf("the server should not report being initialised")
+	}
 	if !strings.Contains(bodyString, "<h4>Code generation</h4>") {
 		t.Errorf("body content unexpected")
 	}
 }
 
+func TestHandleHomeAlreadyInited(t *testing.T) {
+	token := initToken()
+
+	handler := token.HandleHome
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	body, _ := io.ReadAll(resp.Body)
+
+	statusCode := resp.StatusCode
+	contentType := resp.Header.Get("Content-Type")
+	bodyString := string(body)
+
+	if statusCode != 200 {
+		t.Errorf("Status code %d != 200", statusCode)
+	}
+	if contentType != "text/html; charset=utf-8" {
+		t.Errorf("Content type unexpected: %s\n", contentType)
+	}
+	if !strings.Contains(bodyString, "The server is already initialised") {
+		t.Errorf("the server should report being initialised")
+	}
+}
+
 // Test home page redirecting to code with an incorrect state
 func TestHandleHomeRedirectCodeErrorState(t *testing.T) {
+	token := initToken()
+	token.state = "123"
 
 	handler := token.HandleHome
 
@@ -95,6 +132,7 @@ func TestHandleHomeRedirectCodeErrorState(t *testing.T) {
 }
 
 func TestHandleHomeRedirectCode(t *testing.T) {
+	token := initToken()
 
 	handler := token.HandleHome
 
@@ -113,6 +151,7 @@ func TestHandleHomeRedirectCode(t *testing.T) {
 }
 
 func TestHandleCode(t *testing.T) {
+	token := initToken()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
@@ -152,6 +191,7 @@ func TestHandleCode(t *testing.T) {
 }
 
 func TestHandleCodeFail(t *testing.T) {
+	token := initToken()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{}`))
@@ -176,6 +216,10 @@ func TestHandleCodeFail(t *testing.T) {
 }
 
 func TestHandleRefresh(t *testing.T) {
+	token := initToken()
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "hij", "refresh_token": "klm", "expires_in": 1800}`))
@@ -200,6 +244,10 @@ func TestHandleRefresh(t *testing.T) {
 }
 
 func TestHandleRefreshFail(t *testing.T) {
+	token := initToken()
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{}`))
@@ -223,9 +271,10 @@ func TestHandleRefreshFail(t *testing.T) {
 }
 
 func TestHandleToken(t *testing.T) {
-
+	token := initToken()
 	token.AccessToken = "xyz123"
 	token.RefreshToken = "abc987"
+
 	handler := token.HandleAccessToken
 
 	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/token", nil)
@@ -259,6 +308,9 @@ func TestHandleToken(t *testing.T) {
 }
 
 func TestHandleRefreshToken(t *testing.T) {
+	token := initToken()
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
 
 	token.RefreshToken = "abc987"
 	handler := token.HandleRefreshToken
@@ -292,6 +344,7 @@ func TestHandleRefreshToken(t *testing.T) {
 }
 
 func TestHandleRefreshTokenFail(t *testing.T) {
+	token := initToken()
 
 	token.RefreshToken = ""
 	handler := token.HandleRefreshToken
@@ -306,5 +359,48 @@ func TestHandleRefreshTokenFail(t *testing.T) {
 
 	if statusCode != 405 {
 		t.Errorf("Status code %d != 200", statusCode)
+	}
+}
+
+func TestHandleHealthZ(t *testing.T) {
+	token := initToken()
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Minute * 30)
+	token.RefreshTokenExpiryUTC = time.Now().UTC().Add(time.Hour * 24 * 30)
+
+	handler := token.HandleHealthz
+
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/healthz", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+	contentType := resp.Header.Get("Content-Type")
+	body, _ := io.ReadAll(resp.Body)
+
+	if statusCode != 200 {
+		t.Errorf("Status code %d != 200", statusCode)
+	}
+	if contentType != "application/json" {
+		t.Errorf("Content type unexpected: %s\n", contentType)
+	}
+
+	var r map[string]string
+	json.Unmarshal(body, &r)
+	at, ok := r["refresh_token"]
+	if !ok {
+		t.Error("No refreshToken in results")
+	}
+	if at != token.RefreshToken {
+		t.Errorf("RefreshToken is %s should be %s", at, token.RefreshToken)
+	}
+	at, ok = r["access_token"]
+	if !ok {
+		t.Error("No access token in results")
+	}
+	if at != token.AccessToken {
+		t.Errorf("AccessToken is %s should be %s", at, token.AccessToken)
 	}
 }
