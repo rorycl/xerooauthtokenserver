@@ -4,25 +4,26 @@ version 0.0.5 September 2021
 
 ## Summary
 
-xerooauthtokenserver is an http server for managing OAuth2 tokens for
-the accounting software as a service system Xero. The server acts as a
-sidecar or proxy, providing an easy upgrade path for software designed
-for the previous Xero OAuth1 flow.
+XeroOauthTokenServer is an http server for managing OAuth2 tokens for
+the Xero accounting SaaS service. The server acts as a sidecar or proxy,
+providing an easy upgrade path for software designed for the previous
+Xero OAuth1 flow or for avoiding having to integrate OAuth2 in-service.
 
-After following the Xero Oauth2 flow the server makes available a json
-access token at the /token endpoint, and will refresh tokens when
-required using the refresh token, or when the refresh token is due to
-expire.
+After taking the user through the Xero Oauth2 flow the server makes a
+json access token available at the /token endpoint, and will refresh
+tokens when required, or when the refresh token is due to expire.
 
-xerooauthtokenserver/token also provides a package to easily integrate
-the Xero OAuth2 flow into a Go programme.
+The `xerooauthtokenserver/token` package makes it easy to integrate the
+Xero OAuth2 flow into a Go programme, including automated token
+refreshes.
 
 ## Usage
 
-Ensure you have configurated a Xero OAuth2 web app at
-`https://developer.xero.com/app/manage` and generated a client id and
+Ensure you have configured a Xero OAuth2 web app at
+https://developer.xero.com/app/manage and generated a client id and
 secret. It is important that one of the "Redirect URIs" is set to
-`http://localhost:5001/` or your locally configured server address.
+`http://localhost:5001/` or your locally configured XeroOauthTokenServer
+server address if it is not at `127.0.0.1:5001`.
 
 Run the server (you may want to set the `XEROCLIENTID` and
 `XEROCLIENTSECRET` environmental variables for convenience first) and
@@ -49,11 +50,18 @@ initialise the server and trigger an immediate token retrieval by
 invoking the server as follows:
 
 ```bash
-./XeroOauthTokenServer -i CLIENTID -s CLIENTSECRET \
-                       --refreshtoken=<refreshtokendata>
+./XeroOauthTokenServer -i CLIENTID -s CLIENTSECRET --refreshtoken=REFRESHTOKEN
 ```
 
-Security: it is not advisable to put this server on the public internet.
+## Security and Warranty
+
+It is not advisable to put this server on the public internet.
+
+This server is only suitable for integration with software designed to
+act with the permissions of the user initialising it.
+
+Please refer to the LICENSE and note that this software is provided
+without warranty of any kind.
 
 ## Programme options
 

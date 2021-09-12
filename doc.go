@@ -1,9 +1,11 @@
 /*
 xerooauthtokenserver v0.0.5
 
+https://github.com/rorycl/xerooauthtokenserver
+
 Summary:
 
-xerooauthtokenserver is an http server for managing OAuth2 tokens for
+XeroOauthTokenServer is an http server for managing OAuth2 tokens for
 the accounting software as a service system Xero. The server acts as a
 sidecar or proxy, providing an easy upgrade path for software designed
 for the previous Xero OAuth1 flow.
@@ -15,8 +17,10 @@ expire.
 
 The server can also be initialised with a save refresh token.
 
-xerooauthtokenserver/token also provides a package to easily integrate
-the Xero OAuth2 flow into a Go programme.
+The xerooauthtokenserver/token package provides a convenient way to
+integrate Xero Oauth2 flows into a Go programme.
+
+This software is provided under an MIT licence, with no warranty.
 */
 
 package main
