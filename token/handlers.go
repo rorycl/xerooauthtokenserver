@@ -33,6 +33,16 @@ func (t *Token) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, "<html><title>Xero login</title><body>")
+	fmt.Fprint(w, "<h3>XeroOauthTokenServer</h3>")
+	if t.AccessToken != "" {
+		fmt.Fprint(w, `<h4>Server initialised</h4>
+		<p>The server is already initialised. However you can re-login using the
+		code generation link below.</p>
+		<p>View or extract the server token, refresh token and other details at the
+		<a href="/healthz">/healthz</a> json endpoint.</p>
+		<p>View or extract the current token at <a href="/token">/token</a></p>
+		<p>Force a refresh at <a href="/refresh">/refresh</a></p>`)
+	}
 	fmt.Fprint(w, "<h4>Code generation</h4>")
 	fmt.Fprintf(w, "<p>Generate a code by <a href=\"%s\">logging into Xero</a></p>",
 		t.AuthURL())
