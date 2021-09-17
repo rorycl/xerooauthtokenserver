@@ -15,18 +15,15 @@ import (
 // TestExampleFromDocs is shown at
 // https://pkg.go.dev/net/http/httptest#example-ResponseRecorder
 
-var token *Token
-var err error
-
 func initToken() *Token {
-	token, err = NewToken(
+	token, err := NewToken(
 		"https://exampletest.com",
 		"XXXXXclientidXXXXX",
 		"XXXXXclientsecretXXXXX",
 		[]string{"offline_access", "accounting.transactions"},
 		"", // authURL
 		"", // tokenURL
-		0,  // refresh minutes
+		10, // refresh minutes
 	)
 	if err != nil {
 		log.Fatalf("token initialisation failed")
@@ -273,7 +270,9 @@ func TestHandleRefreshFail(t *testing.T) {
 func TestHandleToken(t *testing.T) {
 	token := initToken()
 	token.AccessToken = "xyz123"
+	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Minute * 10)
 	token.RefreshToken = "abc987"
+	token.RefreshTokenExpiryUTC = time.Now().UTC().Add(time.Hour * 10)
 
 	handler := token.HandleAccessToken
 
@@ -304,6 +303,28 @@ func TestHandleToken(t *testing.T) {
 	}
 	if at != token.AccessToken {
 		t.Errorf("AccessToken is %s should be %s", at, token.AccessToken)
+	}
+}
+
+func TestHandleTokenFailOld(t *testing.T) {
+	token := initToken()
+	token.AccessToken = "xyz123"
+	token.RefreshToken = "abc987"
+	// expiration times are at the go epoch
+
+	handler := token.HandleAccessToken
+
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/token", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	body, _ := io.ReadAll(resp.Body)
+	statusCode := resp.StatusCode
+
+	if statusCode != 500 {
+		t.Errorf("Status code %d != 500", statusCode)
+		t.Errorf("body: %s", body)
 	}
 }
 

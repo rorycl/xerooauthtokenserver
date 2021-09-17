@@ -50,6 +50,8 @@ loop:
 
 func TestTriggerRefreshRunner(t *testing.T) {
 
+	token := Token{}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
