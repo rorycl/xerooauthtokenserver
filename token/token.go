@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -219,14 +220,23 @@ func (t *Token) GetToken(code string) error {
 	client := http.Client{
 		Timeout: t.httpclientTimeout,
 	}
-	resp, err := client.Do(req)
 
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
-		msg := fmt.Sprintf("GetToken non-200 status error: %d\n", resp.StatusCode)
-		return errors.New(msg)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			body = []byte("could not read body")
+		}
+		return fmt.Errorf(
+			"Get token callout failed, status %d, %s",
+			resp.StatusCode,
+			string(body),
+		)
 	}
 
 	var results tokenResults
@@ -254,6 +264,12 @@ func (t *Token) Refresh() error {
 		return errors.New("token system has not been initialised")
 	}
 
+	// reset access token if the service is being refreshed from the
+	// command line via a saved refresh token
+	if t.AccessToken == "override" {
+		t.AccessToken = ""
+	}
+
 	form := url.Values{}
 	form.Add("grant_type", "refresh_token")
 	form.Add("refresh_token", t.RefreshToken)
@@ -268,13 +284,23 @@ func (t *Token) Refresh() error {
 	client := http.Client{
 		Timeout: t.httpclientTimeout,
 	}
-	resp, err := client.Do(req)
 
+	resp, err := client.Do(req)
 	if err != nil {
-		return (err)
+		return err
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
-		return (err)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			body = []byte("could not read body")
+		}
+		return fmt.Errorf(
+			"Refresh callout failed, status %d, %s",
+			resp.StatusCode,
+			string(body),
+		)
 	}
 
 	var results tokenResults
@@ -302,6 +328,7 @@ func (t *Token) Get() (tt *Token, err error) {
 	if t.AccessTokenExpiryUTC.Add(-t.expirySecs).After(now) {
 		return t, nil
 	}
+	log.Println("Running refresh")
 	err = t.Refresh()
 	return t, err
 }
