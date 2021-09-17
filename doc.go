@@ -1,5 +1,5 @@
 /*
-xerooauthtokenserver v0.0.5
+xerooauthtokenserver v0.0.6
 
 https://github.com/rorycl/xerooauthtokenserver
 
@@ -15,12 +15,12 @@ access token at the /token endpoint, and will refresh tokens when
 required using the refresh token, or when the refresh token is due to
 expire.
 
-The server can also be initialised with a save refresh token.
+The server can also be initialised with a saved refresh token.
 
 The xerooauthtokenserver/token package provides a convenient way to
 integrate Xero Oauth2 flows into a Go programme.
 
-This software is provided under an MIT licence, with no warranty.
+This software is provided under an MIT licence.
 */
 
 package main

@@ -1,6 +1,6 @@
 # xerooauthtokenserver
 
-version 0.0.5 September 2021
+version 0.0.6 September 2021
 
 ## Summary
 
