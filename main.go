@@ -27,7 +27,7 @@ type Opts struct {
 	ClientSecret string   `short:"s" long:"clientsecret" description:"xero client secret, or use env" env:"XEROCLIENTSECRET" required:"yes"`
 	Redirect     string   `short:"r" long:"redirect" description:"oauth2 redirect address" default:"http://localhost:5001/"`
 	Scopes       []string `short:"o" long:"scopes" description:"oauth2 scopes" default:"offline_access" default:"accounting.transactions" default:"accounting.reports.read"`
-	RefreshMins  int      `short:"m" long:"refreshmins" description:"set lifetime of refresh token (default 50 days)" default:"4320000"`
+	RefreshMins  int      `short:"m" long:"refreshmins" description:"set lifetime of refresh token (default 50 days)" default:"72000"`
 	RefreshToken string   `long:"refreshtoken" description:"initialize server with refresh token"`
 }
 
