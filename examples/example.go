@@ -19,6 +19,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -38,8 +39,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	authURL, tokenURL, refreshLifetime := "", "", 0 // use defaults
-	ts, err := token.NewToken(redirect, clientID, clientSecret, scopes, authURL, tokenURL, refreshLifetime)
+	authURL, tokenURL, tenantURL, refreshLifetime := "", "", "", 0 // use defaults
+	ts, err := token.NewToken(redirect, clientID, clientSecret, scopes, authURL, tokenURL, tenantURL, refreshLifetime)
 	if err != nil {
 		fmt.Printf("new tokenServer error %s\n", err)
 		os.Exit(1)
@@ -58,13 +59,33 @@ func main() {
 	fmt.Println(code)
 
 	fmt.Println("\nGetting token:")
-	ts.GetToken(strings.TrimSpace(code))
+	err = ts.GetToken(strings.TrimSpace(code))
+	if err != nil {
+		log.Fatalf("tenants error: %s\n", err)
+	}
+
 	fmt.Println(ts)
+
+	fmt.Println("\nGetting tenants:")
+	tenants, err := ts.Tenants()
+	if err != nil {
+		log.Fatalf("tenants error: %s\n", err)
+	}
+	fmt.Printf("%v\n", tenants)
 
 	time.Sleep(2 * time.Second)
 
 	fmt.Println("\nRefreshing token:")
 	ts.Refresh()
 	fmt.Println(ts)
+
+	time.Sleep(2 * time.Second)
+
+	fmt.Println("\nGetting tenants:")
+	tenants, err = ts.Tenants()
+	if err != nil {
+		log.Fatalf("tenants error: %s\n", err)
+	}
+	fmt.Printf("%v\n", tenants)
 
 }
