@@ -198,6 +198,41 @@ func TestGetTokenFail(t *testing.T) {
 	}
 }
 
+func TestGetTokenFailStatus(t *testing.T) {
+	token := initToken()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"error": "some amusing error message"}`))
+	}))
+	defer server.Close()
+
+	token.tokenURL = server.URL
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+	err := token.GetToken(token.authURL)
+
+	h := &HTTPClientError{}
+	if !errors.As(err, &h) {
+		t.Errorf("error type not HTTPClientError")
+	}
+	e, ok := err.(*HTTPClientError)
+	if ok {
+		if e.code != 401 {
+			t.Errorf("error code incorrect want(401) got(%d)", e.code)
+		}
+		if !strings.Contains(e.message, "amusing") {
+			t.Errorf("error message incorrect got(%s)", e.message)
+		}
+	} else {
+		t.Errorf("error type not HTTPClientError")
+	}
+
+	// if err.Error() != "empty response received from server" {
+	// 	t.Errorf("unexpected error %s", err)
+	// }
+}
+
 func TestGetTokenTimeout(t *testing.T) {
 	token := initToken()
 
@@ -244,7 +279,7 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
-func TestRefreshFail(t *testing.T) {
+func TestRefreshFailEmpty(t *testing.T) {
 	token := initToken()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -258,9 +293,46 @@ func TestRefreshFail(t *testing.T) {
 	token.RefreshToken = "def"
 	err := token.Refresh()
 
+	h := &HTTPClientError{}
+	if errors.As(err, &h) {
+		t.Errorf("error type should not be HTTPClientError")
+	}
+
 	if err.Error() != "empty response received from server" {
 		t.Errorf("unexpected error %s", err)
 	}
+}
+
+func TestRefreshFailUnAuthorized(t *testing.T) {
+	token := initToken()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"error": "unauthorized"`))
+	}))
+	defer server.Close()
+
+	token.tokenURL = server.URL
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+	err := token.Refresh()
+
+	h := &HTTPClientError{}
+	if !errors.As(err, &h) {
+		t.Errorf("error type should be HTTPClientError")
+	}
+	e, ok := err.(*HTTPClientError)
+	if ok {
+		if e.code != 401 {
+			t.Errorf("error code incorrect want(401) got(%d)", e.code)
+		}
+		if !strings.Contains(e.message, "unauthorized") {
+			t.Errorf("error message incorrect got(%s)", e.message)
+		}
+	} else {
+		t.Errorf("error type not HTTPClientError")
+	}
+
 }
 
 func TestRefreshFailNonInit(t *testing.T) {

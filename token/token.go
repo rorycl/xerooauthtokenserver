@@ -69,7 +69,6 @@ type Token struct {
 	refreshTokenLifetime  time.Duration
 	locker                sync.Mutex
 	refreshChan           <-chan struct{}
-	debug                 bool
 }
 
 // String represents Token for printing
@@ -237,11 +236,7 @@ func (t *Token) GetToken(code string) error {
 		if err != nil {
 			body = []byte("could not read body")
 		}
-		return fmt.Errorf(
-			"Get token callout failed, status %d, %s",
-			resp.StatusCode,
-			string(body),
-		)
+		return &HTTPClientError{resp.StatusCode, string(body)}
 	}
 
 	var results tokenResults
@@ -301,11 +296,7 @@ func (t *Token) Refresh() error {
 		if err != nil {
 			body = []byte("could not read body")
 		}
-		return fmt.Errorf(
-			"Refresh callout failed, status %d, %s",
-			resp.StatusCode,
-			string(body),
-		)
+		return &HTTPClientError{resp.StatusCode, string(body)}
 	}
 
 	var results tokenResults
@@ -316,16 +307,13 @@ func (t *Token) Refresh() error {
 		return errors.New("empty response received from server")
 	}
 
-	t.debug = true
-	if t.debug {
-		log.Printf("refresh results:\n%+v\n", results)
-	}
-
 	t.locker.Lock()
 	t.AccessToken = results.AccessToken
 	t.RefreshToken = results.RefreshToken
 	t.setExpiry(results.ExpiresIn)
 	t.locker.Unlock()
+
+	log.Printf("new refresh token registered: %s", t.RefreshToken)
 
 	return nil
 }
