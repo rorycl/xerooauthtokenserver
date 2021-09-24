@@ -49,7 +49,7 @@ func main() {
 		log.Printf("It is inadvisable to set the refresh interval to less than 20 minutes in production")
 	}
 
-	authURL, tokenURL := "", "" // use Xero default urls
+	authURL, tokenURL, tenantURL := "", "", "" // use Xero default urls
 	ts, err := token.NewToken(
 		options.Redirect,
 		options.ClientID,
@@ -57,6 +57,7 @@ func main() {
 		options.Scopes,
 		authURL,
 		tokenURL,
+		tenantURL,
 		options.RefreshMins,
 	)
 
@@ -81,9 +82,11 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", ts.HandleHome)
 	r.HandleFunc("/code", ts.HandleCode)
-	r.HandleFunc("/healthz", ts.HandleHealthz)
+	r.HandleFunc("/livez", ts.HandleLivez)
+	r.HandleFunc("/status", ts.HandleStatus)
 	r.HandleFunc("/token", ts.HandleAccessToken)
 	r.HandleFunc("/refresh", ts.HandleRefresh)
+	r.HandleFunc("/tenants", ts.HandleTenants)
 
 	// create a handler wrapped in a recovery handler and logging handler
 	hdl := handlers.RecoveryHandler()(
