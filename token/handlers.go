@@ -1,6 +1,7 @@
 package token
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -39,7 +40,7 @@ func (t *Token) HandleHome(w http.ResponseWriter, r *http.Request) {
 		<p>The server is already initialised. However you can re-login using the
 		code generation link below.</p>
 		<p>View or extract the server token, refresh token and other details at the
-		<a href="/healthz">/healthz</a> json endpoint.</p>
+		<a href="/status">/status</a> json endpoint.</p>
 		<p>View or extract the current token at <a href="/token">/token</a></p>
 		<p>Force a refresh at <a href="/refresh">/refresh</a></p>`)
 	}
@@ -71,11 +72,22 @@ func (t *Token) HandleCode(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "<h4>Code extraction succeeded</h4>")
 	fmt.Fprint(w, `<p>View the <a href="/token">token</a>, `)
 	fmt.Fprint(w, `<a href="/refresh">refresh the token</a> `)
-	fmt.Fprint(w, `or view the service <a href="/healthz">health</a>.</p>`)
+	fmt.Fprint(w, `or view the service <a href="/status">status</a>.</p>`)
 }
 
-// HandleHealthz shows the status of the server/tokenserver struct
-func (t *Token) HandleHealthz(w http.ResponseWriter, r *http.Request) {
+// HandleLivez checks if the application is healthy
+func (t *Token) HandleLivez(w http.ResponseWriter, r *http.Request) {
+	if t.AccessToken == "" || t.RefreshToken == "" {
+		msg := "system has not been initialised or is in an error state"
+		log.Println(msg)
+		http.Error(w, msg, http.StatusMethodNotAllowed)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleStatus shows the status of the server/tokenserver struct
+func (t *Token) HandleStatus(w http.ResponseWriter, r *http.Request) {
 	if t.AccessToken == "" || t.RefreshToken == "" {
 		msg := "system has not been initialised or is in an error state"
 		log.Println(msg)
@@ -84,7 +96,7 @@ func (t *Token) HandleHealthz(w http.ResponseWriter, r *http.Request) {
 	}
 	j, err := t.AsJSON()
 	if err != nil {
-		msg := fmt.Sprintf("healthz json encoding error: %s", err)
+		msg := fmt.Sprintf("status json encoding error: %s", err)
 		log.Println(msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
@@ -162,4 +174,32 @@ func (t *Token) HandleRefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(j)
+}
+
+// HandleTenants returns the tenants accessible with this token. If the
+// token has expired refresh has to be handled manually
+func (t *Token) HandleTenants(w http.ResponseWriter, r *http.Request) {
+	if t.AccessToken == "" || t.RefreshToken == "" {
+		msg := "system has not been initialised or is in an error state"
+		log.Println(msg)
+		http.Error(w, msg, http.StatusMethodNotAllowed)
+		return
+	}
+	tenants, err := t.Tenants()
+	if err != nil {
+		msg := fmt.Sprintf("tenant retrieval error: %s", err)
+		msg = msg + "\nyou may need to run /refresh"
+		log.Println(msg)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
+	output, err := json.Marshal(tenants)
+	if err != nil {
+		msg := fmt.Sprintf("tenant encoding error: %s", err)
+		log.Println(msg)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(output)
 }
