@@ -62,10 +62,17 @@ func (t *Token) HandleCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := t.GetToken(strings.TrimSpace(code))
+
 	if err != nil {
-		msg := fmt.Sprintf("token retrieval error: %s", err)
+		e, ok := err.(*HTTPClientError)
+		var msg string
+		if ok {
+			msg = fmt.Sprintf("token retrieval failed: %d : %s", e.code, e.message)
+		} else {
+			msg = fmt.Sprintf("token retrieval error: %s", err)
+		}
 		log.Println(msg)
-		http.Error(w, msg, http.StatusServiceUnavailable)
+		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
 	fmt.Fprint(w, "<html><title>Code extraction</title><body>")
@@ -117,11 +124,18 @@ func (t *Token) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	n := time.Now()
 	err := t.Refresh()
 	if err != nil {
-		msg := fmt.Sprintf("refresh error: %s", err)
+		e, ok := err.(*HTTPClientError)
+		var msg string
+		if ok {
+			msg = fmt.Sprintf("refresh failed: %d : %s", e.code, e.message)
+		} else {
+			msg = fmt.Sprintf("refresh error: %s", err)
+		}
 		log.Println(msg)
-		http.Error(w, msg, http.StatusServiceUnavailable)
+		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
+
 	a := time.Since(n)
 	log.Printf("Refresh took: %s\n", a)
 	w.Header().Set("Location", "/token")

@@ -208,8 +208,8 @@ func TestHandleCodeFail(t *testing.T) {
 
 	statusCode := resp.StatusCode
 
-	if statusCode != 503 {
-		t.Errorf("Status code %d != 503", statusCode)
+	if statusCode != 404 {
+		t.Errorf("Status code %d != 404", statusCode)
 	}
 }
 
@@ -263,8 +263,8 @@ func TestHandleRefreshFail(t *testing.T) {
 
 	statusCode := resp.StatusCode
 
-	if statusCode != 503 {
-		t.Errorf("Status code %d != 503", statusCode)
+	if statusCode != 404 {
+		t.Errorf("Status code %d != 404", statusCode)
 	}
 }
 

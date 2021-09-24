@@ -1,7 +1,6 @@
 package token
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -108,7 +107,6 @@ func TestTenantsDecodeEmptyString(t *testing.T) {
 	token := initToken()
 
 	tenantsString = strings.ReplaceAll(tenantsString, "tenantId", "tenantIdentifier")
-	fmt.Println(tenantsString)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
