@@ -22,6 +22,9 @@ const XeroAuthURL string = "https://login.xero.com/identity/connect/authorize"
 // XeroTokenURL is the Xero token receipt url
 const XeroTokenURL string = "https://identity.xero.com/connect/token"
 
+// XeroTenantURL is the Xero tenant endpoint
+const XeroTenantURL = "https://api.xero.com/connections"
+
 // XeroRefreshExpirationDays is the default expiration of the refresh
 // token from now, which is 60 days; let's say 50
 // See https://developer.xero.com/faq/oauth2/
@@ -59,12 +62,14 @@ type Token struct {
 	authURL               string
 	redirectURL           string
 	tokenURL              string
+	tenantURL             string
 	httpclientTimeout     time.Duration
 	expireTimeTicker      time.Duration
 	expirySecs            time.Duration
 	refreshTokenLifetime  time.Duration
 	locker                sync.Mutex
 	refreshChan           <-chan struct{}
+	debug                 bool
 }
 
 // String represents Token for printing
@@ -104,7 +109,7 @@ func (t *Token) RefreshTokenJSON() (j []byte, err error) {
 }
 
 // NewToken returns a new Token struct
-func NewToken(redirect, client, secret string, scopes []string, authURL, tokenURL string, refreshMins int) (t *Token, err error) {
+func NewToken(redirect, client, secret string, scopes []string, authURL, tokenURL, tenantURL string, refreshMins int) (t *Token, err error) {
 
 	_, err = url.ParseRequestURI(redirect)
 	if err != nil {
@@ -115,13 +120,12 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 	}
 	if authURL == "" {
 		authURL = XeroAuthURL
-	} else if !strings.HasSuffix(authURL, "/") {
-		return t, errors.New("authURL must end with slash")
 	}
 	if tokenURL == "" {
 		tokenURL = XeroTokenURL
-	} else if !strings.HasSuffix(tokenURL, "/") {
-		return t, errors.New("tokenURL must end with slash")
+	}
+	if tenantURL == "" {
+		tenantURL = XeroTenantURL
 	}
 	if len(scopes) < 1 {
 		return t, errors.New("scopes cannot be empty")
@@ -141,6 +145,7 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 		Scopes:               scopes,
 		authURL:              authURL,
 		tokenURL:             tokenURL,
+		tenantURL:            tenantURL,
 		httpclientTimeout:    time.Second * 3,
 		expireTimeTicker:     time.Minute * 1,
 		expirySecs:           time.Second * time.Duration(DefaultExpirySecs),
@@ -309,6 +314,11 @@ func (t *Token) Refresh() error {
 	}
 	if results.AccessToken == "" || results.RefreshToken == "" || results.ExpiresIn == 0 {
 		return errors.New("empty response received from server")
+	}
+
+	t.debug = true
+	if t.debug {
+		log.Printf("refresh results:\n%+v\n", results)
 	}
 
 	t.locker.Lock()
