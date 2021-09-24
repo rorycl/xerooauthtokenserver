@@ -22,6 +22,7 @@ func TestNewTokenErr(t *testing.T) {
 		scopes      []string
 		authURL     string
 		tokenURL    string
+		tenantURL   string
 		refreshMins int
 	}
 
@@ -92,6 +93,7 @@ func TestNewTokenErr(t *testing.T) {
 				test.input.scopes,
 				test.input.authURL,
 				test.input.tokenURL,
+				test.input.tenantURL,
 				test.input.refreshMins,
 			)
 			// nil error match
