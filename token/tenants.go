@@ -33,13 +33,13 @@ func (t jsonDateTime) MarshalJSON() ([]byte, error) {
 
 // Tenants represents a slice of Xero tenants
 type Tenants []struct {
-	ID             string       `json:id`
-	AuthEventID    string       `json:authEventId`
-	TenantID       string       `json:tenantId`
-	TenantType     string       `json:tenantType`
-	TenantName     string       `json:tenantName`
-	CreatedDateUTC jsonDateTime `json:createdDateUtc`
-	UpdatedDateUTC jsonDateTime `json:updatedDateUtc`
+	ID             string       `json:"id"`
+	AuthEventID    string       `json:"authEventId"`
+	TenantID       string       `json:"tenantId"`
+	TenantType     string       `json:"tenantType"`
+	TenantName     string       `json:"tenantName"`
+	CreatedDateUTC jsonDateTime `json:"createdDateUtc"`
+	UpdatedDateUTC jsonDateTime `json:"updatedDateUtc"`
 }
 
 // Tenants retrieves Xero tenants
