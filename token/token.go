@@ -61,6 +61,7 @@ type Token struct {
 	state                 string
 	authURL               string
 	redirectURL           string
+	scopesRequested       []string
 	tokenURL              string
 	tenantURL             string
 	httpclientTimeout     time.Duration
@@ -107,6 +108,27 @@ func (t *Token) RefreshTokenJSON() (j []byte, err error) {
 	return json.Marshal(ts)
 }
 
+// VerifyScopes ensures that all intended scopes are in the token's
+// scopes from Xero
+func (t *Token) VerifyScopes() error {
+	if len(t.scopesRequested) < 1 {
+		return errors.New("no requested scopes provided to verify")
+	}
+	for _, req := range t.scopesRequested {
+		var matcher string
+		for _, has := range t.Scopes {
+			if req == has {
+				matcher = has
+				break
+			}
+		}
+		if matcher != req {
+			return fmt.Errorf("scope %s not found in xero scopes", req)
+		}
+	}
+	return nil
+}
+
 // NewToken returns a new Token struct
 func NewToken(redirect, client, secret string, scopes []string, authURL, tokenURL, tenantURL string, refreshMins int) (t *Token, err error) {
 
@@ -141,7 +163,7 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 		redirectURL:          redirect,
 		clientID:             client,
 		clientSecret:         secret,
-		Scopes:               scopes,
+		scopesRequested:      scopes,
 		authURL:              authURL,
 		tokenURL:             tokenURL,
 		tenantURL:            tenantURL,
@@ -166,7 +188,7 @@ func (t *Token) AuthURL() string {
 	t.state = randstring.RandString(10)
 
 	scope := ""
-	for _, s := range t.Scopes {
+	for _, s := range t.scopesRequested {
 		scope += fmt.Sprintf(" %s", s)
 	}
 	scope = url.QueryEscape(strings.TrimSpace(scope))
@@ -250,6 +272,7 @@ func (t *Token) GetToken(code string) error {
 	t.locker.Lock()
 	t.AccessToken = results.AccessToken
 	t.RefreshToken = results.RefreshToken
+	t.Scopes = strings.Split(results.Scope, " ")
 	t.setExpiry(results.ExpiresIn)
 
 	t.locker.Unlock()
@@ -310,6 +333,7 @@ func (t *Token) Refresh() error {
 	t.locker.Lock()
 	t.AccessToken = results.AccessToken
 	t.RefreshToken = results.RefreshToken
+	t.Scopes = strings.Split(results.Scope, " ")
 	t.setExpiry(results.ExpiresIn)
 	t.locker.Unlock()
 

@@ -70,7 +70,7 @@ func TestNewTokenErr(t *testing.T) {
 				secret:   "def",
 				scopes:   []string{},
 			},
-			expectedErr: errors.New("scopes cannot be empty"),
+			expectedErr: errors.New("requested scopes cannot be empty"),
 		},
 		{
 			name: "ok_scopes",
@@ -122,7 +122,7 @@ func TestURL(t *testing.T) {
 	args := []string{"response_type", "client_id", "redirect_uri", "scope", "state"}
 	params := u.Query()
 	scope := ""
-	for _, s := range token.Scopes {
+	for _, s := range token.scopesRequested {
 		scope += fmt.Sprintf(" %s", s)
 	}
 	scope = strings.TrimSpace(scope)
@@ -399,5 +399,26 @@ func TestGetWithRefresh(t *testing.T) {
 	}
 	if getToken.AccessToken != "abc" {
 		t.Errorf("get access token error: got(%s) want(%s)", getToken.AccessToken, "abc")
+	}
+}
+
+func TestVerifyScopesOK(t *testing.T) {
+	token := initToken()
+	token.scopesRequested = []string{"offline_access", "accounting.transactions"}
+	token.Scopes = []string{"offline_access", "accounting.transactions"}
+	err := token.VerifyScopes()
+	if err != nil {
+		t.Errorf("scope verification failed: %s", err)
+	}
+}
+
+func TestVerifyScopesFail(t *testing.T) {
+	token := initToken()
+	token.scopesRequested = []string{"offline_access", "random.scope"}
+	token.Scopes = []string{"offline_access", "accounting.transactions"}
+	err := token.VerifyScopes()
+	if err == nil {
+		t.Errorf("scope verification should have failed %s %s",
+			token.Scopes, token.scopesRequested)
 	}
 }
