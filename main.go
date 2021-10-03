@@ -74,6 +74,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("Could not initialize server with provided refreshtoken: %s", err)
 		}
+
+		// verify requested scopes for refresh match those returned from
+		// Xero
+		err = ts.VerifyScopes()
+		if err != nil {
+			log.Fatalf("Scope verification error: %s", err)
+		}
 		log.Println("Server successfully initialised with provided refreshtoken")
 	}
 
