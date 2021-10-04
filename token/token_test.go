@@ -70,7 +70,7 @@ func TestNewTokenErr(t *testing.T) {
 				secret:   "def",
 				scopes:   []string{},
 			},
-			expectedErr: errors.New("requested scopes cannot be empty"),
+			expectedErr: errors.New("scopes cannot be empty"),
 		},
 		{
 			name: "ok_scopes",
