@@ -25,6 +25,9 @@ const XeroTokenURL string = "https://identity.xero.com/connect/token"
 // XeroTenantURL is the Xero tenant endpoint
 const XeroTenantURL = "https://api.xero.com/connections"
 
+// XeroRevokeURL is the Xero revocation endpoint
+const XeroRevokeURL = "https://identity.xero.com/connect/revocation"
+
 // XeroRefreshExpirationDays is the default expiration of the refresh
 // token from now, which is 60 days; let's say 50
 // See https://developer.xero.com/faq/oauth2/
@@ -64,6 +67,7 @@ type Token struct {
 	scopesRequested       []string
 	tokenURL              string
 	tenantURL             string
+	revokeURL             string
 	httpclientTimeout     time.Duration
 	expireTimeTicker      time.Duration
 	expirySecs            time.Duration
@@ -167,6 +171,7 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 		authURL:              authURL,
 		tokenURL:             tokenURL,
 		tenantURL:            tenantURL,
+		revokeURL:            XeroRevokeURL,
 		httpclientTimeout:    time.Second * 3,
 		expireTimeTicker:     time.Minute * 1,
 		expirySecs:           time.Second * time.Duration(DefaultExpirySecs),
@@ -353,4 +358,53 @@ func (t *Token) Get() (tt *Token, err error) {
 	log.Println("Running refresh")
 	err = t.Refresh()
 	return t, err
+}
+
+// Revoke revokes a Token and all their connections via the refreshtoken
+// see https://developer.xero.com/documentation/guides/oauth2/auth-flow#revoking-tokens
+func (t *Token) Revoke() error {
+
+	if t.AccessToken == "" || t.RefreshToken == "" {
+		return errors.New("token system has not been initialised")
+	}
+
+	form := url.Values{}
+	form.Add("grant_type", "refresh_token")
+	form.Add("token", t.RefreshToken)
+	req, err := http.NewRequest("POST", t.revokeURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", t.encodeIDSecret())
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.SetBasicAuth(url.QueryEscape(t.clientID), url.QueryEscape(t.clientSecret))
+
+	client := http.Client{
+		Timeout: t.httpclientTimeout,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			body = []byte("could not read body")
+		}
+		return fmt.Errorf("revoke returned %d: %s", resp.StatusCode, body)
+	}
+
+	// clear current structure
+	t.locker.Lock()
+	t.AccessToken = ""
+	t.RefreshToken = ""
+	t.Scopes = []string{}
+	t.AccessTokenExpiryUTC = time.Time{}
+	t.RefreshTokenExpiryUTC = time.Time{}
+	t.locker.Unlock()
+
+	return nil
 }
