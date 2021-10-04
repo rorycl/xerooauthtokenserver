@@ -1,5 +1,5 @@
 /*
-xerooauthtokenserver v0.0.6
+xerooauthtokenserver v0.0.7
 
 https://github.com/rorycl/xerooauthtokenserver
 

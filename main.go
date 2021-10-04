@@ -16,7 +16,7 @@ import (
 )
 
 const description = "Xero oauth token server"
-const version = "0.0.5 September 2021"
+const version = "0.0.7 October 2021"
 const usage = " <options>" + "\n\n  " + description
 
 // Opts are the command line options

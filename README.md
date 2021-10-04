@@ -1,6 +1,6 @@
 # xerooauthtokenserver
 
-version 0.0.6 September 2021
+version 0.0.7 October 2021
 
 ## Summary
 
@@ -29,7 +29,7 @@ Run the server (you may want to set the `XEROCLIENTID` and
 `XEROCLIENTSECRET` environmental variables for convenience first) and
 navigate to `http://127.0.0.1:5001` and follow the Xero authentication
 flow. You can then extract a token at the `/token` endpoint, force a
-refresh at `/refresh` or view the server data at `/healthz`.
+refresh at `/refresh` or view the server data at `/livez`.
 
 For example, invoke the programme as follows:
 
@@ -53,6 +53,24 @@ invoking the server as follows:
 ./XeroOauthTokenServer -i CLIENTID -s CLIENTSECRET --refreshtoken=REFRESHTOKEN
 ```
 
+It is necessary to revoke a token (using the associated refresh token)
+to limit or expand scopes. If a different set of scopes is specified
+to that associated with a refresh token the programme will abort with an
+error.
+
+The following endpoints are provided:
+
+```
+/        : home - use this to commence the oauth2 flow
+/code    : used as the redirect endpoint
+/livez   : check service health
+/status  : view the status of the services
+/token   : view the current token
+/refresh : force a refresh of the token
+/tenants : view the tenants accessible with this token
+/revoke  : revoke the token
+```
+
 ## Security and Warranty
 
 It is not advisable to put this server on the public internet.
@@ -69,8 +87,7 @@ without warranty of any kind.
 Usage:
   XeroOauthTokenServer  <options>
 
-  Xero oauth token server : 0.0.5 September 2021
-
+  Xero oauth token server : 0.0.7 September 2021
 
 Application Options:
   -p, --port=         port to run on (default: 5001)
@@ -78,12 +95,13 @@ Application Options:
   -i, --clientid=     xero client id, or use env [$XEROCLIENTID]
   -s, --clientsecret= xero client secret, or use env [$XEROCLIENTSECRET]
   -r, --redirect=     oauth2 redirect address (default: http://localhost:5001/)
-  -o, --scopes=       oauth2 scopes (default: offline_access, accounting.transactions)
-  -m, --refreshmins=  set lifetime of refresh token (default 50 days) (default: 4320000)
+  -o, --scopes=       oauth2 scopes (default: offline_access, accounting.transactions, accounting.reports.read)
+  -m, --refreshmins=  set lifetime of refresh token (default 50 days) (default: 72000)
       --refreshtoken= initialize server with refresh token
 
 Help Options:
   -h, --help          Show this help message
+
 ```
 
 ## Integration
@@ -108,7 +126,10 @@ def get_token():
 
 
 def tenants(access_token):
-    """retrieve first tenant id"""
+    """
+    retrieve the id of the first tenant
+    can also use "http://127.0.0.1:5001/tenants"
+    """
     tenants_url = 'https://api.xero.com/connections'
     response = requests.get(
         tenants_url,
