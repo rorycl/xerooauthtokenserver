@@ -94,6 +94,7 @@ func main() {
 	r.HandleFunc("/token", ts.HandleAccessToken)
 	r.HandleFunc("/refresh", ts.HandleRefresh)
 	r.HandleFunc("/tenants", ts.HandleTenants)
+	r.HandleFunc("/revoke", ts.HandleRevoke)
 
 	// create a handler wrapped in a recovery handler and logging handler
 	hdl := handlers.RecoveryHandler()(
