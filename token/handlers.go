@@ -217,3 +217,24 @@ func (t *Token) HandleTenants(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(output)
 }
+
+// HandleRevoke runs the revocation function for revoking a token and
+// all of its connections
+func (t *Token) HandleRevoke(w http.ResponseWriter, r *http.Request) {
+	if t.AccessToken == "" || t.RefreshToken == "" {
+		msg := "system has not been initialised or is in an error state"
+		log.Println(msg)
+		http.Error(w, msg, http.StatusMethodNotAllowed)
+		return
+	}
+	err := t.Revoke()
+	if err != nil {
+		msg := fmt.Sprintf("error: %s", err)
+		log.Println(msg)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	j, _ := json.Marshal(map[string]string{"status": "revoked"})
+	w.Write(j)
+}

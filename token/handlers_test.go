@@ -570,3 +570,81 @@ func TestHandleTenantsMalformedJSON(t *testing.T) {
 		t.Errorf("Expected 'parsing time' error, got %s", string(body))
 	}
 }
+
+func TestHandleRevokeOk(t *testing.T) {
+
+	okResponse := `{"status":"revoked"}`
+
+	token := initToken()
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(okResponse))
+	}))
+	defer server.Close()
+
+	token.revokeURL = server.URL
+	handler := token.HandleRevoke
+
+	req := httptest.NewRequest("GET", server.URL, nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+	contentType := resp.Header.Get("Content-Type")
+	body, _ := io.ReadAll(resp.Body)
+
+	if statusCode != 200 {
+		t.Errorf("Status code %d != 200", statusCode)
+	}
+	if contentType != "application/json" {
+		t.Errorf("Content type unexpected: %s\n", contentType)
+	}
+	if !strings.Contains(string(body), "revoked") {
+		t.Error("response does not include 'revoked'")
+	}
+
+}
+
+func TestHandleRevokeFail(t *testing.T) {
+
+	failureResponse := `{"status":"failed"}`
+
+	token := initToken()
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(failureResponse))
+	}))
+	defer server.Close()
+
+	token.revokeURL = server.URL
+	handler := token.HandleRevoke
+
+	req := httptest.NewRequest("GET", server.URL, nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+	contentType := resp.Header.Get("Content-Type")
+	body, _ := io.ReadAll(resp.Body)
+
+	if statusCode != 500 {
+		t.Errorf("Status code %d != 500", statusCode)
+	}
+	if contentType != "text/plain; charset=utf-8" {
+		t.Errorf("Content type unexpected: %s\n", contentType)
+	}
+	if !strings.Contains(string(body), "failed") {
+		t.Error("response does not include 'failed'")
+	}
+
+}
