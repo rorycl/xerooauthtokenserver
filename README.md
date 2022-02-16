@@ -17,6 +17,9 @@ The `xerooauthtokenserver/token` package makes it easy to integrate the
 Xero OAuth2 flow into a Go programme, including automated token
 refreshes.
 
+Please note the security warnings set out in `Security and Warranty`
+below.
+
 ## Usage
 
 Ensure you have configured a Xero OAuth2 web app at
