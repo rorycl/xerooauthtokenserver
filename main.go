@@ -23,9 +23,7 @@ const usage = " <options>" + "\n\n  " + description
 type Opts struct {
 	Port         string   `short:"p" long:"port" description:"port to run on" default:"5001"`
 	Addr         string   `short:"n" long:"address" description:"network address to run on" default:"127.0.0.1"`
-	ClientID     string   `short:"i" long:"clientid" description:"xero client id, or use env" env:"XEROCLIENTID" required:"yes"`
-	ClientSecret string   `short:"s" long:"clientsecret" description:"xero client secret, or use env" env:"XEROCLIENTSECRET" required:"yes"`
-	Redirect     string   `short:"r" long:"redirect" description:"oauth2 redirect address" default:"http://localhost:5001/"`
+	Redirect     string   `short:"r" long:"redirect" description:"oauth2 redirect address" default:"http://localhost:5001/code"`
 	Scopes       []string `short:"o" long:"scopes" description:"oauth2 scopes" default:"offline_access" default:"accounting.transactions" default:"accounting.reports.read"`
 	RefreshMins  int      `short:"m" long:"refreshmins" description:"set lifetime of refresh token (default 50 days)" default:"72000"`
 	RefreshToken string   `long:"refreshtoken" description:"initialize server with refresh token"`
@@ -52,8 +50,6 @@ func main() {
 	authURL, tokenURL, tenantURL := "", "", "" // use Xero default urls
 	ts, err := token.NewToken(
 		options.Redirect,
-		options.ClientID,
-		options.ClientSecret,
 		options.Scopes,
 		authURL,
 		tokenURL,
@@ -87,7 +83,9 @@ func main() {
 	// endpoint routing; gorilla mux is used because "/" in http.NewServeMux
 	// is a catch-all pattern
 	r := mux.NewRouter()
-	r.HandleFunc("/", ts.HandleHome)
+	r.HandleFunc("/", ts.HandleLogin)
+	r.HandleFunc("/login", ts.HandleLogin)
+	r.HandleFunc("/home", ts.HandleHome)
 	r.HandleFunc("/code", ts.HandleCode)
 	r.HandleFunc("/livez", ts.HandleLivez)
 	r.HandleFunc("/status", ts.HandleStatus)
@@ -95,6 +93,7 @@ func main() {
 	r.HandleFunc("/refresh", ts.HandleRefresh)
 	r.HandleFunc("/tenants", ts.HandleTenants)
 	r.HandleFunc("/revoke", ts.HandleRevoke)
+	r.HandleFunc("/logout", ts.HandleLogout)
 
 	// create a handler wrapped in a recovery handler and logging handler
 	hdl := handlers.RecoveryHandler()(
