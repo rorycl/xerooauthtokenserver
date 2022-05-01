@@ -32,17 +32,24 @@ func main() {
 	redirect := "https://xero.com/"
 	clientID := os.Getenv("XEROCLIENTID")
 	clientSecret := os.Getenv("XEROCLIENTSECRET")
+	tenantID := os.Getenv("XEROTENANTID")
 	scopes := []string{"offline_access", "accounting.transactions"}
 
-	if clientID == "" || clientSecret == "" {
-		fmt.Println("Please set the client id and secret environmental variables")
+	if clientID == "" || clientSecret == "" || tenantID == "" {
+		fmt.Println("Please set the client id, secret and tenant environmental variables")
+		fmt.Println("XEROCLIENTID XEROCLIENTSECRET and XEROTENANTID")
 		os.Exit(1)
 	}
 
 	authURL, tokenURL, tenantURL, refreshLifetime := "", "", "", 0 // use defaults
-	ts, err := token.NewToken(redirect, clientID, clientSecret, scopes, authURL, tokenURL, tenantURL, refreshLifetime)
+	ts, err := token.NewToken(redirect, scopes, authURL, tokenURL, tenantURL, refreshLifetime)
 	if err != nil {
 		fmt.Printf("new tokenServer error %s\n", err)
+		os.Exit(1)
+	}
+	err = ts.AddClientCredentials(clientID, clientSecret, tenantID)
+	if err != nil {
+		fmt.Printf("could not add credentials %s\n", err)
 		os.Exit(1)
 	}
 	fmt.Println("Please go to the url below and log into Xero")
