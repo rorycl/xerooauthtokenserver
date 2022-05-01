@@ -17,8 +17,6 @@ func TestNewTokenErr(t *testing.T) {
 
 	type newTokenInput struct {
 		redirect    string
-		client      string
-		secret      string
 		scopes      []string
 		authURL     string
 		tokenURL    string
@@ -36,38 +34,14 @@ func TestNewTokenErr(t *testing.T) {
 			name: "empty_redirect",
 			input: &newTokenInput{
 				redirect: "",
-				client:   "abc",
-				secret:   "def",
 				scopes:   []string{},
 			},
 			expectedErr: errors.New("redirect url invalid"),
 		},
 		{
-			name: "empty_client",
-			input: &newTokenInput{
-				redirect: "http://xero.com",
-				client:   "",
-				secret:   "def",
-				scopes:   []string{},
-			},
-			expectedErr: errors.New("redirect, client or secret is empty"),
-		},
-		{
-			name: "empty_secret",
-			input: &newTokenInput{
-				redirect: "http://xero.com/",
-				client:   "abc",
-				secret:   "",
-				scopes:   []string{},
-			},
-			expectedErr: errors.New("redirect, client or secret is empty"),
-		},
-		{
 			name: "empty_scopes",
 			input: &newTokenInput{
 				redirect: "http://xero.com/",
-				client:   "abc",
-				secret:   "def",
 				scopes:   []string{},
 			},
 			expectedErr: errors.New("scopes cannot be empty"),
@@ -76,8 +50,6 @@ func TestNewTokenErr(t *testing.T) {
 			name: "ok_scopes",
 			input: &newTokenInput{
 				redirect: "http://xero.com/",
-				client:   "abc",
-				secret:   "def",
 				scopes:   []string{"offline_access", "accounting.transactions"},
 			},
 			expectedErr: nil,
@@ -88,8 +60,6 @@ func TestNewTokenErr(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := NewToken(
 				test.input.redirect,
-				test.input.client,
-				test.input.secret,
 				test.input.scopes,
 				test.input.authURL,
 				test.input.tokenURL,
@@ -420,5 +390,54 @@ func TestVerifyScopesFail(t *testing.T) {
 	if err == nil {
 		t.Errorf("scope verification should have failed %s %s",
 			token.Scopes, token.scopesRequested)
+	}
+}
+
+func TestAddClientCredentials(t *testing.T) {
+	tests := []struct {
+		clientID     string
+		clientSecret string
+		tenantID     string
+		isError      bool
+	}{
+		{
+			clientID:     "abc",
+			clientSecret: "def",
+			tenantID:     "ghi",
+			isError:      true,
+		},
+		{
+			clientID:     "KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+			clientSecret: "def",
+			tenantID:     "ghi",
+			isError:      true,
+		},
+		{
+			clientID:     "KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+			clientSecret: "4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+			tenantID:     "ghi",
+			isError:      true,
+		},
+		{
+			clientID:     "KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+			clientSecret: "4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+			tenantID:     "0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+			isError:      false,
+		},
+	}
+
+	token := initToken()
+	if token.clientLoggedIn == true {
+		t.Error("clientLoggedIn should not be true on init")
+	}
+
+	for _, e := range tests {
+		err := token.AddClientCredentials(e.clientID, e.clientSecret, e.tenantID)
+		if err != nil && !e.isError {
+			t.Errorf("error for subtest should be false %+v : %s", e, err)
+			if err == nil && e.isError {
+				t.Errorf("subtest should not error: %+v :  %s", e, err)
+			}
+		}
 	}
 }

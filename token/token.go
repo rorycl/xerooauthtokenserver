@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rorycl/XeroOauthTokenServer/randstring"
 )
 
@@ -61,12 +62,14 @@ type Token struct {
 	Scopes                []string  `json:"scopes"`
 	clientID              string
 	clientSecret          string
+	tenantID              string
+	clientLoggedIn        bool
 	state                 string
 	authURL               string
 	redirectURL           string
 	scopesRequested       []string
 	tokenURL              string
-	tenantURL             string
+	tenantURL             string `json:"tenant_id"`
 	revokeURL             string
 	httpclientTimeout     time.Duration
 	expireTimeTicker      time.Duration
@@ -134,14 +137,11 @@ func (t *Token) VerifyScopes() error {
 }
 
 // NewToken returns a new Token struct
-func NewToken(redirect, client, secret string, scopes []string, authURL, tokenURL, tenantURL string, refreshMins int) (t *Token, err error) {
+func NewToken(redirect string, scopes []string, authURL, tokenURL, tenantURL string, refreshMins int) (t *Token, err error) {
 
 	_, err = url.ParseRequestURI(redirect)
 	if err != nil {
 		return t, errors.New("redirect url invalid")
-	}
-	if client == "" || secret == "" {
-		return t, errors.New("redirect, client or secret is empty")
 	}
 	if authURL == "" {
 		authURL = XeroAuthURL
@@ -165,8 +165,6 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 
 	t = &Token{
 		redirectURL:          redirect,
-		clientID:             client,
-		clientSecret:         secret,
 		scopesRequested:      scopes,
 		authURL:              authURL,
 		tokenURL:             tokenURL,
@@ -183,6 +181,29 @@ func NewToken(redirect, client, secret string, scopes []string, authURL, tokenUR
 	t.refreshRunner(t.refreshChan)
 
 	return t, nil
+}
+
+// AddClientCredentials adds the client id and client secret to the
+// token struct after checking, and sets clientLoggedIn to true
+func (t *Token) AddClientCredentials(client, secret, tenant string) error {
+	if len(client) != 32 {
+		return fmt.Errorf("client identifier %s should be 32 characters in length", client)
+	}
+	if len(secret) != 48 {
+		return fmt.Errorf("secret identifier %s should be 48 characters in length", secret)
+	}
+	_, err := uuid.Parse(tenant)
+	if err != nil {
+		return fmt.Errorf("tenant id %s is not a valid uuid", tenant)
+	}
+	t.locker.Lock()
+	t.clientID = client
+	t.clientSecret = secret
+	t.tenantID = tenant
+	t.clientLoggedIn = true
+	t.locker.Unlock()
+
+	return nil
 }
 
 // AuthURL returns the authorization url which is the beginning of the
@@ -407,4 +428,20 @@ func (t *Token) Revoke() error {
 	t.locker.Unlock()
 
 	return nil
+}
+
+// Logout revokes the token and removes the client data
+func (t *Token) Logout() {
+
+	// ignore errors from revoke
+	_ = t.Revoke()
+
+	// unset all client details (even if not set)
+	t.locker.Lock()
+	t.clientID = ""
+	t.clientSecret = ""
+	t.tenantID = ""
+	t.clientLoggedIn = false
+	t.locker.Unlock()
+
 }
