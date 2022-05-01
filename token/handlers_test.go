@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -18,8 +19,6 @@ import (
 func initToken() *Token {
 	token, err := NewToken(
 		"https://exampletest.com",
-		"XXXXXclientidXXXXX",
-		"XXXXXclientsecretXXXXX",
 		[]string{"offline_access", "accounting.transactions"},
 		"", // authURL
 		"", // tokenURL
@@ -30,6 +29,15 @@ func initToken() *Token {
 		log.Fatalf("token initialisation failed")
 	}
 	return token
+}
+
+// load some example credentials
+func loadCredentials(t *Token) error {
+	return t.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
 }
 
 func TestExampleFromDocs(t *testing.T) {
@@ -49,9 +57,105 @@ func TestExampleFromDocs(t *testing.T) {
 	}
 }
 
+// Test login GET
+func TestHandleLogin(t *testing.T) {
+
+	token := initToken()
+	handler := token.HandleLogin
+
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+
+	if statusCode != 200 {
+		t.Errorf("Status code %d != 200", statusCode)
+	}
+}
+
+// Test login POST
+func TestHandleLoginPOSTFail(t *testing.T) {
+
+	token := initToken()
+	handler := token.HandleLogin
+
+	form := url.Values{}
+	form.Add("client", "abcdef")
+	form.Add("secret", "4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A")
+	form.Add("tenantid", "0b31b5f0-c947-11ec-a2f0-5f41836897f7")
+
+	req := httptest.NewRequest("POST", "http://127.0.0.1:5001/", strings.NewReader(form.Encode()))
+
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+	body, _ := io.ReadAll(resp.Body)
+
+	if statusCode != 200 {
+		t.Errorf("Status code %d != 200", statusCode)
+	}
+	if !strings.Contains(string(body), "client identifier") {
+		t.Errorf("body does not report an invalid client code: %s", body)
+	}
+}
+
+func TestHandleLoginPOSTOK(t *testing.T) {
+
+	token := initToken()
+	handler := token.HandleLogin
+
+	form := url.Values{}
+	form.Add("client", "KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V")
+	form.Add("secret", "4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A")
+	form.Add("tenantid", "0b31b5f0-c947-11ec-a2f0-5f41836897f7")
+
+	req := httptest.NewRequest("POST", "http://127.0.0.1:5001/login", strings.NewReader(form.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+	body, _ := io.ReadAll(resp.Body)
+
+	if statusCode != 302 {
+		t.Errorf("Status code %d != 302", statusCode)
+		t.Errorf("body: %s", body)
+	}
+}
+
+// Test home redirects to login
+func TestHandleHometoLogin(t *testing.T) {
+	token := initToken()
+
+	handler := token.HandleHome
+
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/home", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+
+	if statusCode != 302 {
+		t.Errorf("Status code %d != 302", statusCode)
+	}
+}
+
 // Test home page
 func TestHandleHome(t *testing.T) {
+
 	token := initToken()
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	handler := token.HandleHome
 
@@ -81,7 +185,13 @@ func TestHandleHome(t *testing.T) {
 }
 
 func TestHandleHomeAlreadyInited(t *testing.T) {
+
 	token := initToken()
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	handler := token.HandleHome
 	token.AccessToken = "abc"
@@ -109,14 +219,27 @@ func TestHandleHomeAlreadyInited(t *testing.T) {
 	}
 }
 
-// Test home page redirecting to code with an incorrect state
-func TestHandleHomeRedirectCodeErrorState(t *testing.T) {
+// Test code an incorrect state
+func TestHandleHomeCodeErrorState(t *testing.T) {
+
 	token := initToken()
-	token.state = "123"
+	token.state = "abn2xy"
 
-	handler := token.HandleHome
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
-	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/?code=abc", nil)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
+	}))
+	defer server.Close()
+	token.tokenURL = server.URL
+
+	handler := token.HandleCode
+
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/code?code=abc", nil)
 	w := httptest.NewRecorder()
 	handler(w, req)
 
@@ -129,34 +252,57 @@ func TestHandleHomeRedirectCodeErrorState(t *testing.T) {
 	}
 }
 
-func TestHandleHomeRedirectCode(t *testing.T) {
-	token := initToken()
+func TestHandleCodeOK(t *testing.T) {
 
-	handler := token.HandleHome
+	token := initToken()
+	token.state = "123"
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
+	}))
+	defer server.Close()
+	token.tokenURL = server.URL
+
+	handler := token.HandleCode
 
 	fragment := fmt.Sprintf("?code=%s&state=%s", "123", token.state)
-	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/"+fragment, nil)
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/code/"+fragment, nil)
 	w := httptest.NewRecorder()
 	handler(w, req)
 
 	resp := w.Result()
 	statusCode := resp.StatusCode
 
+	fmt.Printf("code %d\n", statusCode)
+
 	// redirect to code
-	if statusCode != 302 {
-		t.Errorf("Status code %d != 302", statusCode)
+	if statusCode != 200 {
+		t.Errorf("Status code %d != 200", statusCode)
 	}
 }
 
 func TestHandleCode(t *testing.T) {
+
 	token := initToken()
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
 	}))
 	defer server.Close()
-
 	token.tokenURL = server.URL
+
 	handler := token.HandleCode
 
 	fragment := fmt.Sprintf("?code=%s", "123")
@@ -189,7 +335,13 @@ func TestHandleCode(t *testing.T) {
 }
 
 func TestHandleCodeFail(t *testing.T) {
+
 	token := initToken()
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{}`))
@@ -218,6 +370,11 @@ func TestHandleRefresh(t *testing.T) {
 	token.AccessToken = "abc"
 	token.RefreshToken = "def"
 
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "hij", "refresh_token": "klm", "expires_in": 1800}`))
@@ -242,9 +399,15 @@ func TestHandleRefresh(t *testing.T) {
 }
 
 func TestHandleRefreshFail(t *testing.T) {
+
 	token := initToken()
 	token.AccessToken = "abc"
 	token.RefreshToken = "def"
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -274,6 +437,11 @@ func TestHandleToken(t *testing.T) {
 	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Minute * 10)
 	token.RefreshToken = "abc987"
 	token.RefreshTokenExpiryUTC = time.Now().UTC().Add(time.Hour * 10)
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	handler := token.HandleAccessToken
 
@@ -313,6 +481,11 @@ func TestHandleTokenFailOld(t *testing.T) {
 	token.RefreshToken = "abc987"
 	// expiration times are at the go epoch
 
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	handler := token.HandleAccessToken
 
 	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/token", nil)
@@ -333,6 +506,11 @@ func TestHandleRefreshToken(t *testing.T) {
 	token := initToken()
 	token.AccessToken = "abc"
 	token.RefreshToken = "def"
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	token.RefreshToken = "abc987"
 	handler := token.HandleRefreshToken
@@ -367,8 +545,13 @@ func TestHandleRefreshToken(t *testing.T) {
 
 func TestHandleRefreshTokenFail(t *testing.T) {
 	token := initToken()
-
 	token.RefreshToken = ""
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	handler := token.HandleRefreshToken
 
 	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/refresh", nil)
@@ -390,6 +573,11 @@ func TestHandleStatus(t *testing.T) {
 	token.RefreshToken = "def"
 	token.AccessTokenExpiryUTC = time.Now().UTC().Add(time.Minute * 30)
 	token.RefreshTokenExpiryUTC = time.Now().UTC().Add(time.Hour * 24 * 30)
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	handler := token.HandleStatus
 
@@ -435,6 +623,11 @@ func TestHandleTenantsFail(t *testing.T) {
 	token.AccessToken = "abc"
 	token.RefreshToken = "def"
 
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Header().Set("Content-Type", "application/json")
@@ -458,17 +651,32 @@ func TestHandleTenantsFail(t *testing.T) {
 	if statusCode != 500 {
 		t.Errorf("Status code %d != 500", statusCode)
 	}
-	// if contentType != "application/json" {
+	// if contentType != "application/json"
 	if contentType != "text/plain; charset=utf-8" {
 		t.Errorf("Content type unexpected: %s\n", contentType)
 	}
 	if !strings.Contains(string(body), "Tenant callout http error, 401") {
 		t.Error("Body content unexpected for 403 status message")
 	}
-
 }
 
-func TestHandleTenantsSucceed(t *testing.T) {
+func TestHandleTenantsRegistrationFail(t *testing.T) {
+
+	token := initToken()
+	token.AccessToken = "abc"
+	token.RefreshToken = "def"
+
+	err := token.AddClientCredentials(
+		"xxclientidxx",
+		"xxclientsecretxx",
+		"xxtenantidxx",
+	)
+	if err == nil {
+		t.Error("add client credentials should fail")
+	}
+}
+
+func TestHandleTenantsRegistrationSucceed(t *testing.T) {
 
 	okResponse := `[
 		{
@@ -485,6 +693,11 @@ func TestHandleTenantsSucceed(t *testing.T) {
 	token := initToken()
 	token.AccessToken = "abc"
 	token.RefreshToken = "def"
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -513,7 +726,7 @@ func TestHandleTenantsSucceed(t *testing.T) {
 	}
 
 	var tenants *Tenants
-	err := json.Unmarshal(body, &tenants)
+	err = json.Unmarshal(body, &tenants)
 	if err != nil {
 		t.Errorf("unexpected tenants error: %s", err)
 	}
@@ -539,6 +752,11 @@ func TestHandleTenantsMalformedJSON(t *testing.T) {
 	token := initToken()
 	token.AccessToken = "hij"
 	token.RefreshToken = "klm"
+
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -579,6 +797,11 @@ func TestHandleRevokeOk(t *testing.T) {
 	token.AccessToken = "abc"
 	token.RefreshToken = "def"
 
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
@@ -618,6 +841,11 @@ func TestHandleRevokeFail(t *testing.T) {
 	token.AccessToken = "abc"
 	token.RefreshToken = "def"
 
+	err := loadCredentials(token)
+	if err != nil {
+		t.Fatalf("could not add client credentials %s", err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -645,6 +873,24 @@ func TestHandleRevokeFail(t *testing.T) {
 	}
 	if !strings.Contains(string(body), "failed") {
 		t.Error("response does not include 'failed'")
+	}
+}
+
+func TestLogout(t *testing.T) {
+
+	token := initToken()
+
+	handler := token.HandleLogout
+
+	req := httptest.NewRequest("GET", "http://127.0.0.1:5001/logout", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	statusCode := resp.StatusCode
+
+	if statusCode != 302 {
+		t.Errorf("Status code %d != 302", statusCode)
 	}
 
 }
