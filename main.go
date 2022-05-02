@@ -16,17 +16,16 @@ import (
 )
 
 const description = "Xero oauth token server"
-const version = "0.0.7 October 2021"
+const version = "0.1.0 May 2022"
 const usage = " <options>" + "\n\n  " + description
 
 // Opts are the command line options
 type Opts struct {
-	Port         string   `short:"p" long:"port" description:"port to run on" default:"5001"`
-	Addr         string   `short:"n" long:"address" description:"network address to run on" default:"127.0.0.1"`
-	Redirect     string   `short:"r" long:"redirect" description:"oauth2 redirect address" default:"http://localhost:5001/code"`
-	Scopes       []string `short:"o" long:"scopes" description:"oauth2 scopes" default:"offline_access" default:"accounting.transactions" default:"accounting.reports.read"`
-	RefreshMins  int      `short:"m" long:"refreshmins" description:"set lifetime of refresh token (default 50 days)" default:"72000"`
-	RefreshToken string   `long:"refreshtoken" description:"initialize server with refresh token"`
+	Port        string   `short:"p" long:"port" description:"port to run on" default:"5001"`
+	Addr        string   `short:"n" long:"address" description:"network address to run on" default:"127.0.0.1"`
+	Redirect    string   `short:"r" long:"redirect" description:"oauth2 redirect address" default:"http://localhost:5001/code"`
+	Scopes      []string `short:"o" long:"scopes" description:"oauth2 scopes" default:"offline_access" default:"accounting.transactions" default:"accounting.reports.read"`
+	RefreshMins int      `short:"m" long:"refreshmins" description:"set lifetime of refresh token (default 50 days)" default:"72000"`
 }
 
 func main() {
@@ -60,24 +59,6 @@ func main() {
 	if err != nil {
 		log.Printf("new token server error %s\n", err)
 		os.Exit(1)
-	}
-
-	// allow initialisation with just a refresh token
-	if options.RefreshToken != "" {
-		ts.AccessToken = "override"
-		ts.RefreshToken = options.RefreshToken
-		err := ts.Refresh()
-		if err != nil {
-			log.Fatalf("Could not initialize server with provided refreshtoken: %s", err)
-		}
-
-		// verify requested scopes for refresh match those returned from
-		// Xero
-		err = ts.VerifyScopes()
-		if err != nil {
-			log.Fatalf("Scope verification error: %s", err)
-		}
-		log.Println("Server successfully initialised with provided refreshtoken")
 	}
 
 	// endpoint routing; gorilla mux is used because "/" in http.NewServeMux
