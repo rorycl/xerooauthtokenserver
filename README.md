@@ -1,17 +1,19 @@
 # xerooauthtokenserver
 
-version 0.0.7 October 2021
+version 0.1.0 May 2022
 
 ## Summary
 
 XeroOauthTokenServer is an http server for managing OAuth2 tokens for
 the Xero accounting SaaS service. The server acts as a sidecar or proxy,
-providing an easy upgrade path for software designed for the previous
-Xero OAuth1 flow or for avoiding having to integrate OAuth2 in-service.
+allowing easy integration of Xero OAuth2 flows.
 
-After taking the user through the Xero Oauth2 flow the server makes a
-json access token available at the /token endpoint, and will refresh
-tokens when required, or when the refresh token is due to expire.
+After taking the user through first a login screen for providing the
+Xero client id, client secret and tenant id, the programme then takes
+the user through the Xero Oauth2 flow. If this is successful, the server
+makes a json access token available at the /token endpoint, and will
+refresh tokens when required, or when the refresh token is due to
+expire.
 
 The `xerooauthtokenserver/token` package makes it easy to integrate the
 Xero OAuth2 flow into a Go programme, including automated token
@@ -24,36 +26,19 @@ below.
 
 Ensure you have configured a Xero OAuth2 web app at
 https://developer.xero.com/app/manage and generated a client id and
-secret. It is important that one of the "Redirect URIs" is set to
-`http://localhost:5001/` or your locally configured XeroOauthTokenServer
-server address if it is not at `127.0.0.1:5001`.
+secret which will be needed for login, together with the relevant tenant
+id. It is important that one of the "Redirect URIs" is set to
+`http://localhost:5001/code` or the equivalent for your locally
+configured XeroOauthTokenServer server address if it is not at
+`127.0.0.1:5001`.
 
-Run the server (you may want to set the `XEROCLIENTID` and
-`XEROCLIENTSECRET` environmental variables for convenience first) and
-navigate to `http://127.0.0.1:5001` and follow the Xero authentication
-flow. You can then extract a token at the `/token` endpoint, force a
-refresh at `/refresh` or view the server data at `/livez`.
-
-For example, invoke the programme as follows:
-
-```bash
-./XeroOauthTokenServer -i CLIENTID -s CLIENTSECRET
-```
-
-or with the `XEROCLIENTID` and `XEROCLIENTSECRET` environmental
-variables set:
+Run the server which by default will run on `http://127.0.0.1:5001` and
+follow the login and then Xero authentication flow. You can then extract
+a token at the `/token` endpoint, force a refresh at `/refresh` or view
+the server data at `/livez`.
 
 ```bash
 ./XeroOauthTokenServer
-```
-
-If you have previously saved or extracted a Xero refresh token, perhaps
-with the Xero [XOAuth](https://github.com/XeroAPI/xoauth) tool, you can
-initialise the server and trigger an immediate token retrieval by
-invoking the server as follows:
-
-```bash
-./XeroOauthTokenServer -i CLIENTID -s CLIENTSECRET --refreshtoken=REFRESHTOKEN
 ```
 
 It is necessary to revoke a token (using the associated refresh token)
@@ -64,7 +49,8 @@ error.
 The following endpoints are provided:
 
 ```
-/        : home - use this to commence the oauth2 flow
+/        : add client credentials
+/home    : commence the oauth2 flow after adding credentials
 /code    : used as the redirect endpoint
 /livez   : check service health
 /status  : view the status of the services
@@ -72,6 +58,7 @@ The following endpoints are provided:
 /refresh : force a refresh of the token
 /tenants : view the tenants accessible with this token
 /revoke  : revoke the token
+/logout  : logout and revoke the token
 ```
 
 ## Security and Warranty
@@ -90,21 +77,18 @@ without warranty of any kind.
 Usage:
   XeroOauthTokenServer  <options>
 
-  Xero oauth token server : 0.0.7 September 2021
+  Xero oauth token server : 0.1.0 May 2022
 
 Application Options:
-  -p, --port=         port to run on (default: 5001)
-  -n, --address=      network address to run on (default: 127.0.0.1)
-  -i, --clientid=     xero client id, or use env [$XEROCLIENTID]
-  -s, --clientsecret= xero client secret, or use env [$XEROCLIENTSECRET]
-  -r, --redirect=     oauth2 redirect address (default: http://localhost:5001/)
-  -o, --scopes=       oauth2 scopes (default: offline_access, accounting.transactions, accounting.reports.read)
-  -m, --refreshmins=  set lifetime of refresh token (default 50 days) (default: 72000)
-      --refreshtoken= initialize server with refresh token
+  -p, --port=        port to run on (default: 5001)
+  -n, --address=     network address to run on (default: 127.0.0.1)
+  -r, --redirect=    oauth2 redirect address (default: http://localhost:5001/code)
+  -o, --scopes=      oauth2 scopes (default: offline_access, accounting.transactions,
+                     accounting.reports.read)
+  -m, --refreshmins= set lifetime of refresh token (default 50 days) (default: 72000)
 
 Help Options:
-  -h, --help          Show this help message
-
+  -h, --help         Show this help message
 ```
 
 ## Integration
