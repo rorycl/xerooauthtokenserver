@@ -227,6 +227,12 @@ func TestGetTokenTimeout(t *testing.T) {
 func TestRefresh(t *testing.T) {
 	token := initToken()
 
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
@@ -252,6 +258,12 @@ func TestRefresh(t *testing.T) {
 func TestRefreshFailEmpty(t *testing.T) {
 	token := initToken()
 
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "abc", "refresh_token": "", "expires_in": 1800}`))
@@ -275,6 +287,12 @@ func TestRefreshFailEmpty(t *testing.T) {
 
 func TestRefreshFailUnAuthorized(t *testing.T) {
 	token := initToken()
+
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -308,6 +326,12 @@ func TestRefreshFailUnAuthorized(t *testing.T) {
 func TestRefreshFailNonInit(t *testing.T) {
 	token := initToken()
 
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "abc", "refresh_token": "", "expires_in": 1800}`))
@@ -325,6 +349,12 @@ func TestRefreshFailNonInit(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	token := initToken()
+
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -350,6 +380,12 @@ func TestGet(t *testing.T) {
 func TestGetWithRefresh(t *testing.T) {
 	token := initToken()
 
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
@@ -374,6 +410,11 @@ func TestGetWithRefresh(t *testing.T) {
 
 func TestVerifyScopesOK(t *testing.T) {
 	token := initToken()
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
 	token.scopesRequested = []string{"offline_access", "accounting.transactions"}
 	token.Scopes = []string{"offline_access", "accounting.transactions"}
 	err := token.VerifyScopes()
@@ -384,6 +425,11 @@ func TestVerifyScopesOK(t *testing.T) {
 
 func TestVerifyScopesFail(t *testing.T) {
 	token := initToken()
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
 	token.scopesRequested = []string{"offline_access", "random.scope"}
 	token.Scopes = []string{"offline_access", "accounting.transactions"}
 	err := token.VerifyScopes()

@@ -48,9 +48,35 @@ loop:
 	}
 }
 
+func TestTriggerRefreshRunnerFail(t *testing.T) {
+
+	token := Token{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"access_token": "abc", "refresh_token": "def", "expires_in": 1800}`))
+	}))
+	defer server.Close()
+
+	token.tokenURL = server.URL
+	token.AccessToken = "ghi"
+	token.RefreshToken = "jkl"
+	err := token.Refresh()
+	if err == nil {
+		t.Error("token.Refresh should return client error")
+	}
+	t.Log(err)
+
+}
+
 func TestTriggerRefreshRunner(t *testing.T) {
 
 	token := Token{}
+	token.AddClientCredentials(
+		"KW6U8N4BFJ6TJ7W8R2VAHOTD04T4FP0V",
+		"4NmyKEKLGI71pdSQ6xfLGZwoLoDY4Zr4joRjuA5JPxxS3Z7A",
+		"0b31b5f0-c947-11ec-a2f0-5f41836897f7",
+	)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

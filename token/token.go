@@ -184,7 +184,8 @@ func NewToken(redirect string, scopes []string, authURL, tokenURL, tenantURL str
 }
 
 // AddClientCredentials adds the client id and client secret to the
-// token struct after checking, and sets clientLoggedIn to true
+// token struct after checking, and sets clientLoggedIn to true.
+// After initialisation the clientID and clientSecret are set to ""
 func (t *Token) AddClientCredentials(client, secret, tenant string) error {
 	if len(client) != 32 {
 		return fmt.Errorf("client identifier %s should be 32 characters in length", client)
@@ -300,14 +301,18 @@ func (t *Token) GetToken(code string) error {
 	t.RefreshToken = results.RefreshToken
 	t.Scopes = strings.Split(results.Scope, " ")
 	t.setExpiry(results.ExpiresIn)
-
 	t.locker.Unlock()
 
 	return nil
 }
 
-// Refresh uses a refresh token to retrieve a new token and refresh token
+// Refresh uses a refresh token to retrieve a new token and refresh
+// token, and bypasses the normal login method
 func (t *Token) Refresh() error {
+
+	if t.clientLoggedIn == false {
+		return errors.New("client is not logged in")
+	}
 
 	if t.AccessToken == "" || t.RefreshToken == "" {
 		return errors.New("token system has not been initialised")
