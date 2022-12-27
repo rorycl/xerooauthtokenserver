@@ -5,9 +5,18 @@ Python xerooauthtokenserver integration example
 import requests
 
 
+class IntegrationException(Exception):
+    """a simple integration exception class"""
+    pass
+
+
 def get_token():
     """retrieve token from xerooauthtoken server"""
     response = requests.get("http://127.0.0.1:5001/token")
+    if response.status_code != 200:
+        raise IntegrationException(
+            "response %d received; bailing" % response.status_code
+        )
     return response.json()['accessToken']
 
 
@@ -20,6 +29,10 @@ def tenants(access_token):
             'Authorization': 'Bearer ' + access_token,
             'Content-Type': 'application/json'
         })
+    if response.status_code != 200:
+        raise IntegrationException(
+            "response %d received; bailing" % response.status_code
+        )
     return response.json()[0]["tenantId"]  # first tenant id
 
 
