@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 simplejson = "*"
 requests = "*"
+certifi = "*"
 
 [dev-packages]
 ipython = "*"
