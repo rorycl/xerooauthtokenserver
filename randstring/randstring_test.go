@@ -16,6 +16,6 @@ func TestRandStringTwice(t *testing.T) {
 	r := RandString(12)
 	if s == r {
 		t.Errorf("Calling RandString twice gives the same answer (%s==%s)",
-		         s, r)
+			s, r)
 	}
 }

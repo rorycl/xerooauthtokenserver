@@ -5,8 +5,8 @@
 package randstring
 
 import (
-  "math/rand"
-  "time"
+	"math/rand"
+	"time"
 )
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"

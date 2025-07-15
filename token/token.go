@@ -69,7 +69,7 @@ type Token struct {
 	redirectURL           string
 	scopesRequested       []string
 	tokenURL              string
-	tenantURL             string `json:"tenant_id"`
+	tenantURL             string
 	revokeURL             string
 	httpclientTimeout     time.Duration
 	expireTimeTicker      time.Duration

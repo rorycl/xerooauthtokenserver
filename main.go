@@ -94,7 +94,7 @@ func main() {
 
 	// catch signals
 	ch := make(chan os.Signal)
-	signal.Notify(ch, os.Interrupt, os.Kill, 1)
+	signal.Notify(ch, os.Interrupt, os.Kill)
 	go listenForShutdown(ch)
 
 }
