@@ -1,8 +1,6 @@
 module github.com/rorycl/XeroOauthTokenServer
 
-go 1.23.0
-
-toolchain go1.24.0
+go 1.25
 
 require (
 	github.com/braintree/manners v0.0.0-20160418043613-82a8879fc5fd
@@ -14,5 +12,5 @@ require (
 
 require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 )
